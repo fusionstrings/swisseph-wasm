@@ -24,7 +24,8 @@
     "jsr:@std/path@~0.225.2": "0.225.2",
     "jsr:@ts-morph/bootstrap@0.24": "0.24.0",
     "jsr:@ts-morph/common@0.24": "0.24.0",
-    "npm:astronomy-engine@2": "2.1.19"
+    "npm:astronomy-engine@2": "2.1.19",
+    "npm:astronomy-engine@2.1.19": "2.1.19"
   },
   "jsr": {
     "@david/code-block-writer@13.0.3": {

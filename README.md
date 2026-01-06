@@ -16,6 +16,39 @@
 - **Type-Safe**: Complete TypeScript definitions.
 - **Isomorphic**: Runs everywhere WebAssembly runs.
 
+## ⚡ Benchmarks
+
+### 1. Complex Calculations (e.g. Moon Position)
+
+When precision matters, `swisseph-wasm` is both **faster** and **more
+accurate**.
+
+| Environment      | swisseph-wasm       | astronomy-engine | Comparison          |
+| :--------------- | :------------------ | :--------------- | :------------------ |
+| **Deno (Bench)** | **~196,000 iter/s** | ~136,000 iter/s  | **1.43x Faster** 🚀 |
+
+### 2. Simple Calculations (e.g. Sun Position)
+
+For simple calculations, the overhead of calling WebAssembly dominates. Pure JS
+is faster here.
+
+| Environment          | swisseph-wasm    | astronomy-engine     | Note                    |
+| :------------------- | :--------------- | :------------------- | :---------------------- |
+| **Browser (Chrome)** | ~319,000 ops/sec | **~577,000 ops/sec** | Inlined WASM vs Pure JS |
+| **Deno (Native)**    | ~193,000 ops/sec | **~465,000 ops/sec** | Default Loader          |
+
+> **Summary**: Use `swisseph-wasm` for professional-grade astrology (precision +
+> complex speed). Use `astronomy-engine` for UI/visualizations (low precision +
+> simple speed).
+
+Run them yourself:
+
+```bash
+deno task bench
+deno run -A benches/deno_throughput.ts
+# For browser: Serve root and open benches/browser_bench.html
+```
+
 ## Installation
 
 ### Deno / JSR
@@ -34,7 +67,16 @@ const module = new WebAssembly.Module(wasmBytes);
 ### NPM / Node.js
 
 ```bash
-npm install swisseph-wasm
+npm install @fusionstrings/swisseph-wasm
+```
+
+### Browser (Zero-Config)
+
+Use the bundled browser version (inlined WASM) directly:
+
+```typescript
+import { swe_julday } from "@fusionstrings/swisseph-wasm/browser";
+// WASM initializes automatically
 ```
 
 ## Quick Start

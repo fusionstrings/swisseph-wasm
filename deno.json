@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "exports": {
     ".": "./mod.ts",
-    "./wasm": "./lib/swisseph_wasm.wasm"
+    "./wasm": "./lib/swisseph_wasm.wasm",
+    "./browser": "./lib/browser/swisseph_wasm.js"
   },
   "tasks": {
     "build": "deno run -A jsr:@deno/wasmbuild",

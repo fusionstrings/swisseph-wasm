@@ -38,6 +38,7 @@ await build({
         import: "./browser/swisseph_wasm.js",
         types: "./browser/swisseph_wasm.d.ts",
       },
+      "./wasm": "./esm/lib/swisseph_wasm.wasm",
     },
   },
   postBuild() {

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>SwissEph WASM Browser Benchmark</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        padding: 20px;
+      }
+      .metric {
+        font-size: 1.5em;
+        margin: 10px 0;
+      }
+      .label {
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Browser Benchmark (Inlined WASM)</h1>
+    <div id="status">Running...</div>
+    <div id="results"></div>
+
+    <script type="module">
+      import * as swe from "../lib/browser/swisseph_wasm.js";
+
+      import * as Astronomy from "https://esm.sh/astronomy-engine@2.1.19";
+
+      const status = document.getElementById("status");
+      const results = document.getElementById("results");
+
+      // Constants
+      const SE_SUN = 0;
+      const SE_GREG_CAL = 1;
+      const SEFLG_SWIEPH = 2;
+      const SEFLG_SPEED = 256;
+      const ITERATIONS = 100_000;
+
+      async function runBenchmark() {
+        // --- swisseph-wasm ---
+        console.log("Benchmarking swisseph-wasm...");
+        // Warmup
+        const jd = swe.swe_julday(2000, 1, 1, 12.0, SE_GREG_CAL);
+        swe.swe_calc_ut(jd, SE_SUN, SEFLG_SWIEPH | SEFLG_SPEED);
+
+        const startSwe = performance.now();
+        for (let i = 0; i < ITERATIONS; i++) {
+          swe.swe_calc_ut(jd, SE_SUN, SEFLG_SWIEPH | SEFLG_SPEED);
+        }
+        const endSwe = performance.now();
+        const durationSwe = endSwe - startSwe;
+        const opsSwe = Math.round(ITERATIONS / (durationSwe / 1000));
+
+        // --- astronomy-engine ---
+        console.log("Benchmarking astronomy-engine...");
+        // Warmup
+        const date = new Date("2000-01-01T12:00:00Z");
+        Astronomy.GeoVector(Astronomy.Body.Sun, date, true);
+
+        const startAstro = performance.now();
+        for (let i = 0; i < ITERATIONS; i++) {
+          Astronomy.GeoVector(Astronomy.Body.Sun, date, true);
+        }
+        const endAstro = performance.now();
+        const durationAstro = endAstro - startAstro;
+        const opsAstro = Math.round(
+          ITERATIONS / (durationAstro / 1000),
+        );
+
+        status.textContent = "Complete";
+        results.innerHTML = `
+            <div class="metric">
+                <h3>swisseph-wasm</h3>
+                <span class="label">Time:</span> ${
+          durationSwe.toFixed(2)
+        }ms<br>
+                <span class="label">Throughput:</span> ${opsSwe.toLocaleString()} ops/sec
+            </div>
+            <div class="metric">
+                <h3>astronomy-engine</h3>
+                <span class="label">Time:</span> ${
+          durationAstro.toFixed(2)
+        }ms<br>
+                <span class="label">Throughput:</span> ${opsAstro.toLocaleString()} ops/sec
+            </div>
+        `;
+
+        console.log(
+          `[swisseph-wasm]    Time: ${
+            durationSwe.toFixed(2)
+          }ms | Throughput: ${opsSwe.toLocaleString()} ops/sec`,
+        );
+        console.log(
+          `[astronomy-engine] Time: ${
+            durationAstro.toFixed(2)
+          }ms | Throughput: ${opsAstro.toLocaleString()} ops/sec`,
+        );
+      }
+
+      setTimeout(runBenchmark, 100);
+    </script>
+  </body>
+</html>

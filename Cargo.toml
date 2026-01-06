@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Swiss Ephemeris Bindings for WebAssembly"
 license = "MIT"
-repository = "https://github.com/fusionstrings/panchangam"
+repository = "https://github.com/fusionstrings/swisseph-wasm"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

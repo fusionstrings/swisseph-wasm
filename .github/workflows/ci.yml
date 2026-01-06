@@ -6,6 +6,8 @@ on:
     branches: [creation]
   pull_request:
     branches: [creation]
+  release:
+    types: [created]
 
 jobs:
   build:
@@ -56,3 +58,56 @@ jobs:
         run: |
           test -f lib/browser/swisseph_wasm.js
           test -f npm/browser/swisseph_wasm.js
+
+  publish:
+    name: Publish
+    if: github.event_name == 'release' && github.event.action == 'created'
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Git Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v2.x
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install LLVM
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y llvm clang
+
+      - name: Build WASM & Browser
+        run: |
+          deno task build
+          deno task build:browser
+        env:
+          CC: clang
+
+      - name: Build NPM Package
+        run: deno task build:npm
+
+      - name: Publish to Crates.io
+        run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        continue-on-error: true
+
+      - name: Publish to JSR
+        run: deno publish --allow-dirty
+
+      - name: Publish to NPM
+        run: |
+          cd npm
+          npm config set //registry.npmjs.org/:_authToken ${{ secrets.NPM_TOKEN }}
+          npm publish --access public
