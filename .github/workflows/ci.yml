@@ -107,7 +107,7 @@ jobs:
         continue-on-error: true
 
       - name: Publish to JSR
-        run: deno publish --allow-dirty
+        run: deno publish
 
       - name: Publish to NPM
         run: |

@@ -2,11 +2,14 @@
 
 **High-precision, WebAssembly bindings for the Swiss Ephemeris.**
 
-> 🚀 **Best-in-Class**: Faster, smaller, and more accurate than pure JS
-> implementations. 🛡️ **Safe**: Rust-based memory safety for FFI interactions.
-> 📦 **Universal**: Works in Node.js, Deno, Bun, and Browsers.
+> - 🚀 **Best-in-Class**: Faster, smaller, and more accurate than pure JS
+>   implementations.
+> - 🛡️ **Safe**: Rust-based memory safety for FFI interactions.
+> - 📦 **Universal**: Works in Node.js, Deno, Bun, and Browsers.
 
 [![JSR](https://jsr.io/badges/@fusionstrings/swisseph-wasm)](https://jsr.io/@fusionstrings/swisseph-wasm)
+[![npm](https://img.shields.io/npm/v/@fusionstrings/swisseph-wasm)](https://www.npmjs.com/package/@fusionstrings/swisseph-wasm)
+[![Crates.io](https://img.shields.io/crates/v/swisseph-wasm)](https://crates.io/crates/swisseph-wasm)
 [![CI](https://github.com/fusionstrings/swisseph-wasm/actions/workflows/ci.yml/badge.svg)](https://github.com/fusionstrings/swisseph-wasm/actions/workflows/ci.yml)
 
 ## Features
