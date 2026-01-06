@@ -1,0 +1,44 @@
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Git Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v2.x
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install LLVM (Clang)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y llvm clang
+
+      - name: Build WASM
+        run: deno task build
+        env:
+          CC: clang
+
+      - name: Run Tests
+        run: deno task test
+
+      - name: Run Benchmarks
+        run: deno task bench

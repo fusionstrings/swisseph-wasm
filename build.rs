@@ -3,6 +3,22 @@ use std::path::PathBuf;
 
 fn main() {
     let target = env::var("TARGET").unwrap();
+    let host = env::var("HOST").unwrap();
+    
+    // Auto-detect Homebrew LLVM on macOS for WASM builds if CC is not set
+    if target.contains("wasm32") && host.contains("apple") && env::var("CC").is_err() {
+        let brew_llvm = PathBuf::from("/opt/homebrew/opt/llvm/bin/clang");
+        if brew_llvm.exists() {
+            println!("cargo:warning=Auto-detected Homebrew LLVM for WASM build: {:?}", brew_llvm);
+            env::set_var("CC", brew_llvm.to_str().unwrap());
+            env::set_var("AR", "/opt/homebrew/opt/llvm/bin/llvm-ar");
+        } else {
+             println!("cargo:warning=WebAssembly build on macOS requires LLVM/Clang with wasm32 support.");
+             println!("cargo:warning=Please install with: brew install llvm");
+             println!("cargo:warning=Or set CC environment variable to a wasm32-compatible clang.");
+        }
+    }
+
     let mut build = cc::Build::new();
     
     // Source Directories
@@ -55,15 +71,24 @@ fn main() {
         let wasm_includes = PathBuf::from(manifest_dir).join("wasm-includes");
         build.include(&wasm_includes);
         
-        // Flags to suppress warnings and ensure Wasm compatibility
-        build.flag("-Wno-implicit-function-declaration")
+        // Strict Warnings & Quality Control
+        // We want to see warnings, but filter out the noise from the legacy C codebase
+        build
+             .flag("-Wall")
+             .flag("-Wextra")
+             // Suppress inevitable warnings from legacy C code to keep build log clean
+             .flag("-Wno-implicit-function-declaration")
              .flag("-Wno-int-conversion")
              .flag("-Wno-unused-variable")
              .flag("-Wno-unused-parameter")
              .flag("-Wno-sign-compare")
              .flag("-Wno-missing-braces")
              .flag("-Wno-parentheses")
-             .flag("-Wno-misleading-indentation");
+             .flag("-Wno-misleading-indentation")
+             .flag("-Wno-empty-body")
+             .flag("-Wno-unknown-pragmas")
+             // Ensure we are compiling for the right target
+             .flag("-target").flag("wasm32-unknown-unknown");
     }
 
     build.compile("swe");

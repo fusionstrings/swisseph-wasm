@@ -210,6 +210,8 @@ mod shims {
     #[no_mangle]
     pub unsafe extern "C" fn log10(x: f64) -> f64 { libm::log10(x) }
     
+    const MAGIC: usize = 0xDEADBEEF;
+
     #[no_mangle]
     pub unsafe extern "C" fn malloc(size: usize) -> *mut u8 {
         let header_size = 8;
@@ -219,8 +221,12 @@ mod shims {
         
         if ptr.is_null() { return core::ptr::null_mut(); }
         
-        // Store size in header
-        *(ptr as *mut usize) = total_size;
+        // Header: [Magic (4 bytes) | Size (4 bytes)] (on 32-bit wasm)
+        // Actually usize is u32. 
+        // We use 2 * usize = 8 bytes.
+        let header_ptr = ptr as *mut usize;
+        *header_ptr = MAGIC;
+        *header_ptr.add(1) = total_size;
         
         // Return pointer after header
         ptr.add(header_size)
@@ -232,9 +238,16 @@ mod shims {
         
         let header_size = 8;
         let real_ptr = ptr.sub(header_size);
+        let header_ptr = real_ptr as *mut usize;
         
-        // Read size from header
-        let total_size = *(real_ptr as *const usize);
+        // Safety check: Verify magic number
+        if *header_ptr != MAGIC {
+            // Not our memory or corrupted. Do nothing to avoid crash.
+            // Ideally we would log this but we are no_std/no-io here.
+            return;
+        }
+
+        let total_size = *header_ptr.add(1);
         let layout = alloc::alloc::Layout::from_size_align_unchecked(total_size, 8);
         
         alloc::alloc::dealloc(real_ptr, layout);
@@ -243,7 +256,7 @@ mod shims {
     #[no_mangle]
     pub unsafe extern "C" fn calloc(nmemb: usize, size: usize) -> *mut u8 {
         let total_size = nmemb * size;
-        let ptr = malloc(total_size);
+        let ptr = malloc(total_size); // Uses our malloc with header
         if !ptr.is_null() {
             core::ptr::write_bytes(ptr, 0, total_size);
         }
@@ -262,7 +275,17 @@ mod shims {
         
         let header_size = 8;
         let real_ptr = ptr.sub(header_size);
-        let old_total_size = *(real_ptr as *const usize);
+        let header_ptr = real_ptr as *mut usize;
+        
+        // Safety check
+        if *header_ptr != MAGIC {
+             // Can't realloc something we didn't alloc. 
+             // Best effort: malloc new, copy nothing (unsafe to read), return new.
+             // Or fail. Failing is safer.
+             return core::ptr::null_mut();
+        }
+
+        let old_total_size = *header_ptr.add(1);
         let old_user_size = old_total_size - header_size;
         
         let new_ptr = malloc(new_size);

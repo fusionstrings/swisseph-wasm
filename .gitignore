@@ -1,1 +1,5 @@
 /target
+src/constants.ts
+lib/constants.js
+lib/constants.d.ts
+npm/
