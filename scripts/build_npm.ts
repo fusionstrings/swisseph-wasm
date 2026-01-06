@@ -13,7 +13,7 @@ await build({
     deno: true,
   },
   mappings: {
-    "./lib/swisseph_wasm.js": "./lib/swisseph_wasm_node.ts",
+    "./lib/swisseph_wasm.js": "./src/wasm_node.ts",
   },
   package: {
     // Must match package.json details

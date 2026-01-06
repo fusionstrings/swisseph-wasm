@@ -1,9 +1,5 @@
 /target
 src/constants.ts
-lib/swisseph_wasm.js
-lib/swisseph_wasm.d.ts
-lib/swisseph_wasm.internal.js
-lib/swisseph_wasm.wasm
-lib/browser/
+lib/
 npm/
 .env
