@@ -6,8 +6,8 @@ import * as url from "node:url";
 import * as internal from "./swisseph_wasm.internal.js";
 import { __wbg_set_wasm } from "./swisseph_wasm.internal.js";
 
-const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
-const wasmPath = path.join(__dirname, "swisseph_wasm.wasm");
+const currDir = path.dirname(url.fileURLToPath(import.meta.url));
+const wasmPath = path.join(currDir, "swisseph_wasm.wasm");
 
 const wasmModule = new WebAssembly.Module(fs.readFileSync(wasmPath));
 const wasmInstance = new WebAssembly.Instance(wasmModule, {

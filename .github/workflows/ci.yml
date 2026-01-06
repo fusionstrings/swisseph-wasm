@@ -3,9 +3,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [creation]
   pull_request:
-    branches: [main]
+    branches: [creation]
 
 jobs:
   build:
@@ -42,3 +42,17 @@ jobs:
 
       - name: Run Benchmarks
         run: deno task bench
+
+      - name: Build NPM Package
+        run: deno task build:npm
+
+      - name: Build Browser Package
+        run: deno task build:browser
+
+      - name: Verify Node.js Support
+        run: node tests/node_verification.js
+
+      - name: Check Browser Artifacts
+        run: |
+          test -f lib/browser/swisseph_wasm.js
+          test -f npm/browser/swisseph_wasm.js

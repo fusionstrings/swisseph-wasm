@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwissEph WASM Browser Verification</title>
+  </head>
+  <body>
+    <h1>SwissEph WASM Verification</h1>
+    <div id="status">Loading...</div>
+    <div id="output"></div>
+    <script type="module">
+      import * as swe from "../lib/browser/swisseph_wasm.js";
+
+      const output = document.getElementById("output");
+      const status = document.getElementById("status");
+
+      function log(msg) {
+        output.innerHTML += `<div>${msg}</div>`;
+        console.log(msg);
+      }
+
+      try {
+        log("Initializing...");
+
+        // Constants
+        const SE_SUN = 0;
+        const SE_GREG_CAL = 1;
+        const SEFLG_SWIEPH = 2;
+        const SEFLG_SPEED = 256;
+
+        // Test 1: Julian Day
+        const jd = swe.swe_julday(2000, 1, 1, 12.0, SE_GREG_CAL);
+        log(`JD result: ${jd}`);
+
+        if (jd === 2451545.0) {
+          log("✅ JD Calculation Verified");
+        } else {
+          throw new Error(`JD mismatch. Expected 2451545.0, got ${jd}`);
+        }
+
+        // Test 2: Sun Position
+        const sun = swe.swe_calc_ut(
+          jd,
+          SE_SUN,
+          SEFLG_SWIEPH | SEFLG_SPEED,
+        );
+        log(`Sun Longitude: ${sun.longitude}`);
+
+        if (sun.longitude > 275 && sun.longitude < 285) {
+          log("✅ Sun Position Verified");
+        } else {
+          throw new Error("Sun position out of expected range");
+        }
+
+        status.textContent = "SUCCESS";
+        status.style.color = "green";
+      } catch (e) {
+        status.textContent = "FAILED: " + e.message;
+        status.style.color = "red";
+        console.error(e);
+      }
+    </script>
+  </body>
+</html>
