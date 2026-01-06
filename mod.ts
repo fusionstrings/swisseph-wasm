@@ -1,5 +1,5 @@
-// Re-export all WASM functions
+// Export WASM bindings
 export * from "./lib/swisseph_wasm.js";
 
-// Define and export constants manually
+// Export Constants
 export * from "./src/constants.ts";

@@ -43,10 +43,8 @@ Deno.test("Sun Position (J2000)", () => {
   assertEquals(typeof sun.latitude, "number");
   assertEquals(typeof sun.distance, "number");
 
-  // Roughly Capricorn (approx 280 degrees for Jan 1)
-  // Actually Sun attempts to enter Capricorn on Dec 21/22 (270 deg).
-  // Jan 1 is about 10 days later. ~1 deg per day.
-  // So expected longitude ~280 +/- 2 degrees.
+  // Verify reasonable Sun longitude for J2000 (approx 280 degrees/Capricorn).
+  // Precision check is loose here as we test specific mechanics, not astronomical accuracy (covered in C lib).
   const long = sun.longitude;
   if (long < 275 || long > 285) {
     throw new Error(

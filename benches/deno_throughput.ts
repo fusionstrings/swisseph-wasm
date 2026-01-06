@@ -8,7 +8,8 @@ import {
 } from "../mod.ts";
 
 // @ts-ignore -- allowing usage of npm import
-import * as Astronomy from "npm:astronomy-engine@2.1.19";
+// @ts-ignore -- allowing usage of npm import
+import * as Astronomy from "astronomy-engine";
 
 const ITERATIONS = 100_000;
 
