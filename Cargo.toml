@@ -1,6 +1,6 @@
 [package]
 name = "swisseph-wasm"
-version = "0.1.0"
+version = "0.1.2"
 edition = "2021"
 description = "Swiss Ephemeris Bindings for WebAssembly"
 license = "MIT"
