@@ -18,7 +18,7 @@ await build({
   package: {
     // Must match package.json details
     name: "@fusionstrings/swisseph-wasm",
-    version: "0.1.4-pre.2",
+    version: "0.1.4-pre.3",
     description:
       "High-precision Swiss Ephemeris bindings for WebAssembly (Rust based)",
     license: "MIT",
