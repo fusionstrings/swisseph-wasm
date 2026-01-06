@@ -1,6 +1,6 @@
 {
   "name": "@fusionstrings/swisseph-wasm",
-  "version": "0.1.3",
+  "version": "0.1.4-pre.1",
   "exports": {
     ".": "./mod.ts",
     "./wasm": "./lib/swisseph_wasm.wasm",
