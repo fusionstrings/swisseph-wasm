@@ -45,11 +45,11 @@ jobs:
       - name: Run Benchmarks
         run: deno task bench
 
-      - name: Build NPM Package
-        run: deno task build:npm
-
       - name: Build Browser Package
         run: deno task build:browser
+
+      - name: Build NPM Package
+        run: deno task build:npm
 
       - name: Verify Node.js Support
         run: node tests/node_verification.js
