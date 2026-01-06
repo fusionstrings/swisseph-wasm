@@ -19,6 +19,7 @@
     "jsr:@std/io@0.223": "0.223.0",
     "jsr:@std/path@0.223": "0.223.0",
     "jsr:@std/path@1": "1.1.4",
+    "jsr:@std/path@1.0.0": "1.0.0",
     "jsr:@std/path@1.0.0-rc.1": "1.0.0-rc.1",
     "jsr:@std/path@^1.1.4": "1.1.4",
     "jsr:@std/path@~0.225.2": "0.225.2",
@@ -118,6 +119,9 @@
     },
     "@std/path@1.0.0-rc.1": {
       "integrity": "b8c00ae2f19106a6bb7cbf1ab9be52aa70de1605daeb2dbdc4f87a7cbaf10ff6"
+    },
+    "@std/path@1.0.0": {
+      "integrity": "77fcb858b6e38777d1154df0f02245ba0b07e2c40ca3c0eec57c9233188c2d21"
     },
     "@std/path@1.1.4": {
       "integrity": "1d2d43f39efb1b42f0b1882a25486647cb851481862dc7313390b2bb044314b5",
@@ -357,6 +361,7 @@
   "workspace": {
     "dependencies": [
       "jsr:@std/assert@1.0.0",
+      "jsr:@std/path@1.0.0",
       "npm:astronomy-engine@2"
     ]
   }

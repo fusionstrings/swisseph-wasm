@@ -16,6 +16,7 @@
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1.0.0",
+    "@std/path": "jsr:@std/path@1.0.0",
     "astronomy-engine": "npm:astronomy-engine@^2.0.0"
   },
   "publish": {

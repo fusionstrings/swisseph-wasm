@@ -3,6 +3,8 @@
 const HEADER_PATH = "vendor/swisseph/swephexp.h";
 const TARGET_TS = "src/constants.ts";
 
+import * as path from "@std/path";
+
 async function main() {
   const text = await Deno.readTextFile(HEADER_PATH);
   const lines = text.split("\n");
@@ -61,6 +63,7 @@ async function main() {
     tsContent += `export const ${name} = ${value};\n`;
   }
 
+  await Deno.mkdir(path.dirname(TARGET_TS), { recursive: true });
   await Deno.writeTextFile(TARGET_TS, tsContent);
 
   console.log(`Generated ${constants.length} constants.`);
