@@ -1,7 +1,7 @@
 use core::ffi::{c_int, c_double, c_char};
 
 #[link(name = "swe")]
-extern "C" {
+unsafe extern "C" {
     #[link_name = "impl_swe_version"]
     pub fn swe_version(s: *mut c_char) -> *mut c_char;
 

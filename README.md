@@ -25,7 +25,7 @@ accurate**.
 
 | Environment      | swisseph-wasm       | astronomy-engine | Comparison          |
 | :--------------- | :------------------ | :--------------- | :------------------ |
-| **Deno (Bench)** | **~196,000 iter/s** | ~136,000 iter/s  | **1.43x Faster** 🚀 |
+| **Deno (Bench)** | **~182,000 iter/s** | ~126,000 iter/s  | **1.44x Faster** 🚀 |
 
 ### 2. Simple Calculations (e.g. Sun Position)
 
@@ -35,7 +35,7 @@ is faster here.
 | Environment          | swisseph-wasm    | astronomy-engine     | Note                    |
 | :------------------- | :--------------- | :------------------- | :---------------------- |
 | **Browser (Chrome)** | ~319,000 ops/sec | **~577,000 ops/sec** | Inlined WASM vs Pure JS |
-| **Deno (Native)**    | ~193,000 ops/sec | **~465,000 ops/sec** | Default Loader          |
+| **Deno (Native)**    | ~178,000 ops/sec | **~434,000 ops/sec** | Default Loader          |
 
 > **Summary**: Use `swisseph-wasm` for professional-grade astrology (precision +
 > complex speed). Use `astronomy-engine` for UI/visualizations (low precision +
@@ -55,6 +55,14 @@ deno run -A benches/deno_throughput.ts
 
 ```bash
 deno add jsr:@fusionstrings/swisseph-wasm
+```
+
+### Rust (Cargo)
+
+Use as a native Rust crate:
+
+```bash
+cargo add swisseph-wasm
 ```
 
 **Advanced**: Import raw WASM (Deno):
@@ -124,6 +132,20 @@ The build script automatically detects Homebrew LLVM.
 ```bash
 deno task build
 ```
+
+## Maintenance
+
+### Version Management
+
+To update the version across Deno, Cargo, and NPM configs:
+
+```bash
+deno task bump-version <new-version>
+# Example: deno task bump-version 1.2.3
+```
+
+This command validates the version format, updates all config files, and syncs
+`Cargo.lock`.
 
 ## License
 

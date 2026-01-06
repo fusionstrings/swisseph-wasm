@@ -10,8 +10,10 @@ fn main() {
         let brew_llvm = PathBuf::from("/opt/homebrew/opt/llvm/bin/clang");
         if brew_llvm.exists() {
             println!("cargo:warning=Auto-detected Homebrew LLVM for WASM build: {:?}", brew_llvm);
-            env::set_var("CC", brew_llvm.to_str().unwrap());
-            env::set_var("AR", "/opt/homebrew/opt/llvm/bin/llvm-ar");
+            unsafe {
+                env::set_var("CC", brew_llvm.to_str().unwrap());
+                env::set_var("AR", "/opt/homebrew/opt/llvm/bin/llvm-ar");
+            }
         } else {
              println!("cargo:warning=WebAssembly build on macOS requires LLVM/Clang with wasm32 support.");
              println!("cargo:warning=Please install with: brew install llvm");
