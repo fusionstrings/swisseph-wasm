@@ -7,7 +7,7 @@
     "./browser": "./lib/browser/swisseph_wasm.js"
   },
   "tasks": {
-    "build": "deno task check-version && deno task gen && deno run -A jsr:@deno/wasmbuild@0.20.0",
+    "build": "deno task gen && deno run -A jsr:@deno/wasmbuild@0.20.0",
     "build:browser": "deno run -A jsr:@deno/wasmbuild@0.20.0 --out lib/browser --inline",
     "test": "deno test -A",
     "bench": "deno bench -A benches/comparison.ts",
