@@ -28,7 +28,10 @@
       "lib/swisseph_wasm.internal.js",
       "lib/swisseph_wasm.d.ts",
       "lib/swisseph_wasm.wasm",
-      "lib/browser/swisseph_wasm.js"
+      "lib/browser/swisseph_wasm.js",
+      "lib/browser/swisseph_wasm.internal.js",
+      "lib/browser/swisseph_wasm.d.ts"
     ]
-  }
+  },
+  "license": "MIT"
 }
