@@ -15,6 +15,7 @@ await build({
   },
   mappings: {
     "./lib/swisseph_wasm.js": "./src/wasm_node.ts",
+    "./lib/swisseph_wasm.d.ts": "./src/wasm_node.ts",
   },
   package: {
     // Must match package.json details
