@@ -1,6 +1,6 @@
 {
   "name": "@fusionstrings/swisseph-wasm",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "High-precision Swiss Ephemeris bindings for WebAssembly (Rust based)",
   "exports": {
     ".": "./mod.ts",
