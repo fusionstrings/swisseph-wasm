@@ -10,10 +10,10 @@ repository = "https://github.com/fusionstrings/swisseph-wasm"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-wasm-bindgen = "=0.2.105"
-js-sys = "0.3.82"
+wasm-bindgen = "=0.2.106"
+js-sys = "0.3.83"
 libm = "0.2.15"
-libc = "0.2.179"
+libc = "0.2.180"
 
 [build-dependencies]
 cc = "1.2.51"

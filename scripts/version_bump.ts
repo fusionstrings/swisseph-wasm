@@ -61,7 +61,7 @@ async function main() {
   try {
     await bumpDeno(newVersion);
     await bumpCargo(newVersion);
-    await bumpNpm(newVersion);
+    // await bumpNpm(newVersion);
     console.log("\n✅ Version bump complete.");
     console.log("Run 'deno task build' to verify everything works.");
   } catch (error) {

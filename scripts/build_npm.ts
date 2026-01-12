@@ -1,4 +1,5 @@
-import { build, emptyDir } from "jsr:@deno/dnt@^0.41.3";
+import { build, emptyDir } from "@deno/dnt";
+import denoJson from "../deno.json" with { type: "json" };
 
 await emptyDir("./npm");
 
@@ -17,11 +18,10 @@ await build({
   },
   package: {
     // Must match package.json details
-    name: "@fusionstrings/swisseph-wasm",
-    version: "0.1.4",
-    description:
-      "High-precision Swiss Ephemeris bindings for WebAssembly (Rust based)",
-    license: "MIT",
+    name: denoJson.name,
+    version: denoJson.version,
+    description: denoJson.description,
+    license: denoJson.license,
     publishConfig: {
       access: "public",
     },
