@@ -3,3 +3,5 @@ src/constants.ts
 lib/
 npm/
 .env
+.DS_Store
+node_modules
