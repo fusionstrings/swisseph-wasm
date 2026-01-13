@@ -1527,6 +1527,23 @@ pub fn js_swe_set_lapse_rate(lapse_rate: f64) {
     unsafe { swe_bindings::swe_set_lapse_rate(lapse_rate); }
 }
 
+/// Set ephemeris path.
+#[wasm_bindgen(js_name = swe_set_ephe_path)]
+pub fn js_swe_set_ephe_path(path: String) {
+    let (_bytes, ptr) = string_to_c_ptr(&path);
+    unsafe { swe_bindings::swe_set_ephe_path(ptr); }
+    // memory of _bytes is dropped here, which is fine as swe_set_ephe_path copies the string buffer internally usually?
+    // SwissEph documentation says: "The string is copied into a global variable."
+    // So dropping _bytes is safe.
+}
+
+/// Set JPL ephemeris filename.
+#[wasm_bindgen(js_name = swe_set_jpl_file)]
+pub fn js_swe_set_jpl_file(fname: String) {
+    let (_bytes, ptr) = string_to_c_ptr(&fname);
+    unsafe { swe_bindings::swe_set_jpl_file(ptr); }
+}
+
 /// Set tidal acceleration.
 #[wasm_bindgen(js_name = swe_set_tid_acc)]
 pub fn js_swe_set_tid_acc(t_acc: f64) {
@@ -1867,3 +1884,140 @@ mod shims {
 
 }
 
+// ============================================================
+// BATCH 10: Missing Function Parity
+// ============================================================
+
+/// Set astro models.
+#[wasm_bindgen(js_name = swe_set_astro_models)]
+pub fn js_swe_set_astro_models(sams: String, iflag: i32) {
+    let (_bytes, ptr) = string_to_c_ptr(&sams);
+    unsafe { swe_bindings::swe_set_astro_models(ptr, iflag); }
+}
+
+/// Get astro models.
+#[wasm_bindgen(js_name = swe_get_astro_models)]
+pub fn js_swe_get_astro_models() -> Result<JsValue, JsValue> {
+    let mut sams = cstr_buf();
+    let mut sdet = cstr_buf();
+    unsafe { swe_bindings::swe_get_astro_models(sams.as_mut_ptr(), sdet.as_mut_ptr()); }
+    
+    let obj = Object::new();
+    Reflect::set(&obj, &"sams".into(), &err_to_string(&sams).into())?;
+    Reflect::set(&obj, &"sdet".into(), &err_to_string(&sdet).into())?;
+    Ok(obj.into())
+}
+
+/// Get libraries path.
+#[wasm_bindgen(js_name = swe_get_library_path)]
+pub fn js_swe_get_library_path() -> String {
+    let mut buf = cstr_buf();
+    unsafe { swe_bindings::swe_get_library_path(buf.as_mut_ptr()); }
+    err_to_string(&buf)
+}
+
+/// CS to Degree String.
+#[wasm_bindgen(js_name = swe_cs2degstr)]
+pub fn js_swe_cs2degstr(t: i32) -> String {
+    let mut buf = cstr_buf();
+    unsafe { swe_bindings::swe_cs2degstr(t, buf.as_mut_ptr()); }
+    err_to_string(&buf)
+}
+
+/// CS to LonLat String.
+#[wasm_bindgen(js_name = swe_cs2lonlatstr)]
+pub fn js_swe_cs2lonlatstr(t: i32, pchar: String, mchar: String) -> String {
+    let mut buf = cstr_buf();
+    let p_byte = if pchar.len() > 0 { pchar.as_bytes()[0] as i8 } else { 0 };
+    let m_byte = if mchar.len() > 0 { mchar.as_bytes()[0] as i8 } else { 0 };
+    unsafe { swe_bindings::swe_cs2lonlatstr(t, p_byte, m_byte, buf.as_mut_ptr()); }
+    err_to_string(&buf)
+}
+
+/// CS to Time String.
+#[wasm_bindgen(js_name = swe_cs2timestr)]
+pub fn js_swe_cs2timestr(t: i32, sep: i32, suppress_zero: i32) -> String {
+    let mut buf = cstr_buf();
+    unsafe { swe_bindings::swe_cs2timestr(t, sep, suppress_zero, buf.as_mut_ptr()); }
+    err_to_string(&buf)
+}
+
+/// Get current file data.
+#[wasm_bindgen(js_name = swe_get_current_file_data)]
+pub fn js_swe_get_current_file_data(ifno: i32) -> Result<JsValue, JsValue> {
+    let mut tfstart = 0.0;
+    let mut tfend = 0.0;
+    let mut denum = 0;
+    // Note: The C signature in swephexp.h might vary slightly, treating it as returning string or taking buffer?
+    // In bindings it returns *const c_char.
+    let ret_ptr = unsafe { swe_bindings::swe_get_current_file_data(ifno, &mut tfstart, &mut tfend, &mut denum) };
+    
+    let obj = Object::new();
+    Reflect::set(&obj, &"tfstart".into(), &tfstart.into())?;
+    Reflect::set(&obj, &"tfend".into(), &tfend.into())?;
+    Reflect::set(&obj, &"denum".into(), &denum.into())?;
+    
+    if !ret_ptr.is_null() {
+        // Use core::ffi::CStr instead of std::ffi::CStr
+        let c_str = unsafe { CStr::from_ptr(ret_ptr) };
+        // Manual conversion to avoids std's to_string_lossy if not available or strictly no_std
+        let bytes = c_str.to_bytes();
+        let s = core::str::from_utf8(bytes).unwrap_or("EncodingError").to_string();
+        Reflect::set(&obj, &"filename".into(), &s.into())?;
+    } else {
+        Reflect::set(&obj, &"filename".into(), &"".into())?;
+    }
+    
+    Ok(obj.into())
+}
+
+/// Heliacal Angle.
+#[wasm_bindgen(js_name = swe_heliacal_angle)]
+pub fn js_swe_heliacal_angle(tjdut: f64, dgeo: Vec<f64>, datm: Vec<f64>, dobs: Vec<f64>, helflag: i32, mag: f64, azi_obj: f64, azi_sun: f64, azi_moon: f64, alt_moon: f64) -> Result<JsValue, JsValue> {
+    if dgeo.len() < 3 || datm.len() < 4 || dobs.len() < 6 {
+        return Err(JsValue::from_str("Arrays too short"));
+    }
+    let mut dgeo_arr = [dgeo[0], dgeo[1], dgeo[2]];
+    let mut datm_arr = [datm[0], datm[1], datm[2], datm[3]];
+    let mut dobs_arr = [dobs[0], dobs[1], dobs[2], dobs[3], dobs[4], dobs[5]];
+    let mut dret = [0.0; 50]; // Large buffer
+    let mut serr = cstr_buf();
+    
+    let ret = unsafe {
+        swe_bindings::swe_heliacal_angle(tjdut, dgeo_arr.as_mut_ptr(), datm_arr.as_mut_ptr(), dobs_arr.as_mut_ptr(), helflag, mag, azi_obj, azi_sun, azi_moon, alt_moon, dret.as_mut_ptr(), serr.as_mut_ptr())
+    };
+    
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    
+    let obj = Object::new();
+    // Use js_sys::Float64Array
+    let dret_array = js_sys::Float64Array::from(&dret[..]);
+    Reflect::set(&obj, &"dret".into(), &dret_array)?;
+    Reflect::set(&obj, &"rc".into(), &ret.into())?;
+    Ok(obj.into())
+}
+
+/// Topo Arcus Visionis.
+#[wasm_bindgen(js_name = swe_topo_arcus_visionis)]
+pub fn js_swe_topo_arcus_visionis(tjdut: f64, dgeo: Vec<f64>, datm: Vec<f64>, dobs: Vec<f64>, helflag: i32, mag: f64, azi_obj: f64, alt_obj: f64, azi_sun: f64, azi_moon: f64, alt_moon: f64) -> Result<JsValue, JsValue> {
+    if dgeo.len() < 3 || datm.len() < 4 || dobs.len() < 6 {
+        return Err(JsValue::from_str("Arrays too short"));
+    }
+    let mut dgeo_arr = [dgeo[0], dgeo[1], dgeo[2]];
+    let mut datm_arr = [datm[0], datm[1], datm[2], datm[3]];
+    let mut dobs_arr = [dobs[0], dobs[1], dobs[2], dobs[3], dobs[4], dobs[5]];
+    let mut dret = [0.0; 50];
+    let mut serr = cstr_buf();
+    
+    let ret = unsafe {
+        swe_bindings::swe_topo_arcus_visionis(tjdut, dgeo_arr.as_mut_ptr(), datm_arr.as_mut_ptr(), dobs_arr.as_mut_ptr(), helflag, mag, azi_obj, alt_obj, azi_sun, azi_moon, alt_moon, dret.as_mut_ptr(), serr.as_mut_ptr())
+    };
+    
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    
+    let obj = Object::new();
+    let dret_array = js_sys::Float64Array::from(&dret[..]);
+    Reflect::set(&obj, &"dret".into(), &dret_array)?;
+    Reflect::set(&obj, &"rc".into(), &ret.into())?;
+    Ok(obj.into())
+}

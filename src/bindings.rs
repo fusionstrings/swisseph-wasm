@@ -99,6 +99,10 @@ unsafe extern "C" {
     pub fn swe_set_interpolate_nut(do_interpolate: c_int);
     #[link_name = "impl_swe_close"]
     pub fn swe_close();
+    #[link_name = "impl_swe_set_astro_models"]
+    pub fn swe_set_astro_models(sams: *const c_char, iflag: c_int);
+    #[link_name = "impl_swe_get_astro_models"]
+    pub fn swe_get_astro_models(sams: *mut c_char, sdet: *mut c_char);
 
 
     // --- Eclipses & Occultations ---

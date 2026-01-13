@@ -172,6 +172,8 @@ fn main() {
         ("swe_get_ayanamsa_ex_ut", "impl_swe_get_ayanamsa_ex_ut"),
         ("swe_get_ayanamsa_name", "impl_swe_get_ayanamsa_name"),
         ("swe_get_current_file_data", "impl_swe_get_current_file_data"),
+        ("swe_set_astro_models", "impl_swe_set_astro_models"),
+        ("swe_get_astro_models", "impl_swe_get_astro_models"),
     ];
     
     for (orig, renamed) in &renaming {

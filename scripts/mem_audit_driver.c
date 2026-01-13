@@ -42,7 +42,9 @@ int main() {
         
         // Test a fixed star
         if (i % 10 == 0) {
-            if (swe_fixstar_ut("Sirius", tjd, iflag, xx, serr) < 0) {
+            char star[512];
+            strcpy(star, "Sirius");
+            if (swe_fixstar_ut(star, tjd, iflag, xx, serr) < 0) {
                 // ignore error
             }
         }
