@@ -235,6 +235,13 @@ Deno.test("Stars: swe_fixstar", () => {
   try {
     const result = swe_fixstar("Sirius", 2451545.0, SEFLG_MOSEPH);
     console.log("swe_fixstar:", result);
+    // Reference (swetest): 104.0853066
+    const expectedLong = 104.0853066;
+    if (Math.abs(result.longitude - expectedLong) > 1e-6) {
+      throw new Error(
+        `Sirius longitude mismatch: got ${result.longitude}, expected ${expectedLong}`,
+      );
+    }
   } catch (e) {
     console.log("swe_fixstar (no file):", e);
   }
@@ -382,7 +389,20 @@ Deno.test("DateTime: swe_lat_to_lmt", () => {
 Deno.test("Houses: swe_houses", () => {
   const result = swe_houses(2451545.0, 47.37, 8.54, "P");
   assertEquals(result.cusps.length, 12);
-  console.log("swe_houses:", result.ascendant);
+  // Reference (swetest): 36.7814492
+  const expectedAsc = 36.7814492;
+  console.log(
+    "swe_houses Ascendant:",
+    result.ascendant,
+    "Expected:",
+    expectedAsc,
+  );
+  // Ensure we match C reference within 6 decimals
+  if (Math.abs(result.ascendant - expectedAsc) > 1e-6) {
+    throw new Error(
+      `Ascendant mismatch: got ${result.ascendant}, expected ${expectedAsc}`,
+    );
+  }
 });
 
 Deno.test("Houses: swe_houses_ex", () => {
@@ -451,9 +471,16 @@ Deno.test("Eclipse: swe_sol_eclipse_when_loc", () => {
 });
 
 Deno.test("Eclipse: swe_sol_eclipse_when_glob", () => {
-  const result = swe_sol_eclipse_when_glob(2460000, SEFLG_MOSEPH, 0, 0);
+  const result = swe_sol_eclipse_when_glob(2451545.0, SEFLG_MOSEPH, 0, 0);
   assertExists(result);
   console.log("swe_sol_eclipse_when_glob:", result.tret[0]);
+  // Reference (swetest): 2451580.034250
+  const expectedJD = 2451580.034250;
+  if (Math.abs(result.tret[0] - expectedJD) > 1e-6) {
+    throw new Error(
+      `Eclipse time mismatch: got ${result.tret[0]}, expected ${expectedJD}`,
+    );
+  }
 });
 
 Deno.test("Eclipse: swe_lun_eclipse_how", () => {
@@ -711,19 +738,26 @@ Deno.test("Coords: swe_refrac_extended", () => {
 
 Deno.test("RiseSet: swe_rise_trans", () => {
   const result = swe_rise_trans(
-    2451545.0,
+    2451544.5, // Start at 00:00 to catch sunrise
     SE_SUN,
     "",
     SEFLG_MOSEPH,
     SE_CALC_RISE,
-    8.5,
+    8.54,
     47.37,
     0,
-    1013,
+    1013.25,
     15,
   );
   assertExists(result);
   console.log("swe_rise_trans:", result);
+  // Reference: 2451544.800827
+  const expectedJD = 2451544.800827;
+  if (Math.abs(result.tret - expectedJD) > 1e-4) { // Rise times can vary slightly by refraction model
+    throw new Error(
+      `Rise time mismatch: got ${result.tret}, expected ${expectedJD}`,
+    );
+  }
 });
 
 Deno.test("RiseSet: swe_rise_trans_true_hor", () => {
