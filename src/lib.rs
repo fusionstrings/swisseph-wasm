@@ -57,6 +57,12 @@ pub fn js_swe_close() {
 
 // --- Calculation ---
 
+/// Calculate planetary position (UT).
+/// 
+/// @param tjd_ut Julian Day (UT).
+/// @param ipl Planet ID (0=Sun, 1=Moon... see constants).
+/// @param iflag Calculation flags (e.g. SEFLG_SWIEPH | SEFLG_SPEED).
+/// @returns Object { longitude, latitude, distance, speed_long, speed_lat, speed_dist, rc_flags }.
 #[wasm_bindgen(js_name = swe_calc_ut)]
 pub fn js_swe_calc_ut(tjd_ut: f64, ipl: i32, iflag: i32) -> Result<JsValue, JsValue> {
     let mut xx = [0.0; 6];
@@ -79,6 +85,12 @@ pub fn js_swe_calc_ut(tjd_ut: f64, ipl: i32, iflag: i32) -> Result<JsValue, JsVa
     Ok(obj.into())
 }
 
+/// Calculate planetary position (ET).
+/// 
+/// @param tjd Julian Day (ET).
+/// @param ipl Planet ID.
+/// @param iflag Flags.
+/// @returns Object { longitude, latitude, distance, ... }.
 #[wasm_bindgen(js_name = swe_calc)]
 pub fn js_swe_calc(tjd: f64, ipl: i32, iflag: i32) -> Result<JsValue, JsValue> {
     let mut xx = [0.0; 6];
@@ -102,11 +114,24 @@ pub fn js_swe_calc(tjd: f64, ipl: i32, iflag: i32) -> Result<JsValue, JsValue> {
 
 // --- Date & Time ---
 
+/// Calculate Julian Day from calendar date.
+/// 
+/// @param year Year (e.g. 2000).
+/// @param month Month (1-12).
+/// @param day Day (1-31).
+/// @param hour Hour (decimal, e.g. 12.5).
+/// @param gregflag Calendar flag (0=Julian, 1=Gregorian).
+/// @returns Julian Day number.
 #[wasm_bindgen(js_name = swe_julday)]
 pub fn js_swe_julday(year: i32, month: i32, day: i32, hour: f64, gregflag: i32) -> f64 {
     unsafe { swe_bindings::swe_julday(year, month, day, hour, gregflag) }
 }
 
+/// Calculate Calendar Date from Julian Day.
+/// 
+/// @param tjd Julian Day number.
+/// @param gregflag Calendar flag (0=Julian, 1=Gregorian).
+/// @returns Object { year, month, day, hour }.
 #[wasm_bindgen(js_name = swe_revjul)]
 pub fn js_swe_revjul(tjd: f64, gregflag: i32) -> JsValue {
     let mut year = 0;
@@ -123,6 +148,10 @@ pub fn js_swe_revjul(tjd: f64, gregflag: i32) -> JsValue {
     obj.into()
 }
 
+/// Calculate Sidereal Time.
+///
+/// @param tjd_ut Julian Day (UT).
+/// @returns Sidereal Time (hours).
 #[wasm_bindgen(js_name = swe_sidtime)]
 pub fn js_swe_sidtime(tjd_ut: f64) -> f64 {
     unsafe { swe_bindings::swe_sidtime(tjd_ut) }
@@ -131,6 +160,13 @@ pub fn js_swe_sidtime(tjd_ut: f64) -> f64 {
 
 // --- Houses ---
 
+/// Calculate House Cusps and Ascendant/MC.
+///
+/// @param tjd_ut Julian Day (UT).
+/// @param geolat Geographic Latitude (negative for South).
+/// @param geolon Geographic Longitude (negative for West).
+/// @param hsys House System char (e.g. 'P' for Placidus).
+/// @returns Object { cusps: [13], ascmc: [10], ascendant, mc, armc, vertex, eqasc, ... }.
 #[wasm_bindgen(js_name = swe_houses)]
 pub fn js_swe_houses(tjd_ut: f64, geolat: f64, geolon: f64, hsys: String) -> Result<JsValue, JsValue> {
     let hsys_char = hsys.chars().next().unwrap_or('P') as i32;
@@ -485,7 +521,7 @@ pub fn js_swe_rise_trans(tjd_ut: f64, ipl: i32, starname: Option<String>, ephefl
     let mut tret = 0.0;
     let mut serr = cstr_buf();
     let mut geopos = [geolon, geolat, geoalt];
-    let (star_bytes, star_ptr) = if let Some(s) = starname { string_to_c_ptr(&s) } else { (Vec::new(), core::ptr::null_mut()) };
+    let (_star_bytes, star_ptr) = if let Some(s) = starname { string_to_c_ptr(&s) } else { (Vec::new(), core::ptr::null_mut()) };
     
     let ret = unsafe {
         swe_bindings::swe_rise_trans(tjd_ut, ipl, star_ptr, epheflag, rsmi, geopos.as_mut_ptr(), atpress, attemp, &mut tret, serr.as_mut_ptr())
@@ -504,7 +540,7 @@ pub fn js_swe_rise_trans_true_hor(tjd_ut: f64, ipl: i32, starname: Option<String
     let mut tret = 0.0;
     let mut serr = cstr_buf();
     let mut geopos = [geolon, geolat, geoalt];
-    let (star_bytes, star_ptr) = if let Some(s) = starname { string_to_c_ptr(&s) } else { (Vec::new(), core::ptr::null_mut()) };
+    let (_star_bytes, star_ptr) = if let Some(s) = starname { string_to_c_ptr(&s) } else { (Vec::new(), core::ptr::null_mut()) };
     
     let ret = unsafe {
         swe_bindings::swe_rise_trans_true_hor(tjd_ut, ipl, star_ptr, epheflag, rsmi, geopos.as_mut_ptr(), atpress, attemp, horhgt, &mut tret, serr.as_mut_ptr())
@@ -520,7 +556,7 @@ pub fn js_swe_rise_trans_true_hor(tjd_ut: f64, ipl: i32, starname: Option<String
 #[wasm_bindgen(js_name = swe_lun_eclipse_when)]
 pub fn js_swe_lun_eclipse_when(tjd_start: f64, iflag: i32, ifltype: i32) -> Result<JsValue, JsValue> {
     let mut tret = [0.0; 10];
-    let mut backward = 0;
+    let backward = 0;
     let mut serr = cstr_buf();
     
     let ret = unsafe {
@@ -593,6 +629,952 @@ pub fn js_swe_refrac(inalt: f64, atpress: f64, attemp: f64, calc_flag: i32) -> f
     unsafe { swe_bindings::swe_refrac(inalt, atpress, attemp, calc_flag) }
 }
 
+
+// --- Tier 1: Critical Missing APIs ---
+
+/// Normalize degrees to range [0, 360).
+///
+/// @param x Degrees to normalize.
+/// @returns Normalized degrees in [0, 360).
+#[wasm_bindgen(js_name = swe_degnorm)]
+pub fn js_swe_degnorm(x: f64) -> f64 {
+    unsafe { swe_bindings::swe_degnorm(x) }
+}
+
+/// Normalize radians to range [0, 2π).
+///
+/// @param x Radians to normalize.
+/// @returns Normalized radians in [0, 2π).
+#[wasm_bindgen(js_name = swe_radnorm)]
+pub fn js_swe_radnorm(x: f64) -> f64 {
+    unsafe { swe_bindings::swe_radnorm(x) }
+}
+
+/// Get day of week from Julian Day.
+///
+/// @param jd Julian Day number.
+/// @returns Day of week (0=Monday, 1=Tuesday, ..., 6=Sunday).
+#[wasm_bindgen(js_name = swe_day_of_week)]
+pub fn js_swe_day_of_week(jd: f64) -> i32 {
+    unsafe { swe_bindings::swe_day_of_week(jd) }
+}
+
+/// Get house system name.
+///
+/// @param hsys House system code (e.g. 'P' for Placidus, 'K' for Koch).
+/// @returns House system name string.
+#[wasm_bindgen(js_name = swe_house_name)]
+pub fn js_swe_house_name(hsys: String) -> String {
+    let hsys_char = hsys.chars().next().unwrap_or('P') as i32;
+    unsafe {
+        let ptr = swe_bindings::swe_house_name(hsys_char);
+        if ptr.is_null() {
+            return "Unknown".to_string();
+        }
+        CStr::from_ptr(ptr).to_str().unwrap_or("Unknown").to_string()
+    }
+}
+
+/// Get ayanamsa (sidereal mode) name.
+///
+/// @param isidmode Sidereal mode ID (e.g. 0=Fagan-Bradley, 1=Lahiri).
+/// @returns Ayanamsa system name string.
+#[wasm_bindgen(js_name = swe_get_ayanamsa_name)]
+pub fn js_swe_get_ayanamsa_name(isidmode: i32) -> String {
+    unsafe {
+        let ptr = swe_bindings::swe_get_ayanamsa_name(isidmode);
+        if ptr.is_null() {
+            return "Unknown".to_string();
+        }
+        CStr::from_ptr(ptr).to_str().unwrap_or("Unknown").to_string()
+    }
+}
+
+/// Convert UTC to Julian Day.
+///
+/// @param year Year.
+/// @param month Month (1-12).
+/// @param day Day (1-31).
+/// @param hour Hour (0-23).
+/// @param min Minute (0-59).
+/// @param sec Second (0-59.999...).
+/// @param gregflag Calendar (0=Julian, 1=Gregorian).
+/// @returns Object { jd_et, jd_ut } or error.
+#[wasm_bindgen(js_name = swe_utc_to_jd)]
+pub fn js_swe_utc_to_jd(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: f64, gregflag: i32) -> Result<JsValue, JsValue> {
+    let mut dret = [0.0; 2];
+    let mut serr = cstr_buf();
+    
+    let ret = unsafe {
+        swe_bindings::swe_utc_to_jd(year, month, day, hour, min, sec, gregflag, dret.as_mut_ptr(), serr.as_mut_ptr())
+    };
+    
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    
+    let obj = Object::new();
+    let _ = Reflect::set(&obj, &"jd_et".into(), &dret[0].into());
+    let _ = Reflect::set(&obj, &"jd_ut".into(), &dret[1].into());
+    Ok(obj.into())
+}
+
+/// Convert Julian Day (ET) to UTC.
+///
+/// @param tjd_et Julian Day in Ephemeris Time.
+/// @param gregflag Calendar (0=Julian, 1=Gregorian).
+/// @returns Object { year, month, day, hour, min, sec }.
+#[wasm_bindgen(js_name = swe_jdet_to_utc)]
+pub fn js_swe_jdet_to_utc(tjd_et: f64, gregflag: i32) -> JsValue {
+    let mut year = 0;
+    let mut month = 0;
+    let mut day = 0;
+    let mut hour = 0;
+    let mut min = 0;
+    let mut sec = 0.0;
+    
+    unsafe {
+        swe_bindings::swe_jdet_to_utc(tjd_et, gregflag, &mut year, &mut month, &mut day, &mut hour, &mut min, &mut sec);
+    }
+    
+    let obj = Object::new();
+    let _ = Reflect::set(&obj, &"year".into(), &year.into());
+    let _ = Reflect::set(&obj, &"month".into(), &month.into());
+    let _ = Reflect::set(&obj, &"day".into(), &day.into());
+    let _ = Reflect::set(&obj, &"hour".into(), &hour.into());
+    let _ = Reflect::set(&obj, &"min".into(), &min.into());
+    let _ = Reflect::set(&obj, &"sec".into(), &sec.into());
+    obj.into()
+}
+
+/// Convert Julian Day (UT1) to UTC.
+///
+/// @param tjd_ut Julian Day in Universal Time.
+/// @param gregflag Calendar (0=Julian, 1=Gregorian).
+/// @returns Object { year, month, day, hour, min, sec }.
+#[wasm_bindgen(js_name = swe_jdut1_to_utc)]
+pub fn js_swe_jdut1_to_utc(tjd_ut: f64, gregflag: i32) -> JsValue {
+    let mut year = 0;
+    let mut month = 0;
+    let mut day = 0;
+    let mut hour = 0;
+    let mut min = 0;
+    let mut sec = 0.0;
+    
+    unsafe {
+        swe_bindings::swe_jdut1_to_utc(tjd_ut, gregflag, &mut year, &mut month, &mut day, &mut hour, &mut min, &mut sec);
+    }
+    
+    let obj = Object::new();
+    let _ = Reflect::set(&obj, &"year".into(), &year.into());
+    let _ = Reflect::set(&obj, &"month".into(), &month.into());
+    let _ = Reflect::set(&obj, &"day".into(), &day.into());
+    let _ = Reflect::set(&obj, &"hour".into(), &hour.into());
+    let _ = Reflect::set(&obj, &"min".into(), &min.into());
+    let _ = Reflect::set(&obj, &"sec".into(), &sec.into());
+    obj.into()
+}
+
+/// Calculate solar eclipse attributes at a geographic location.
+///
+/// @param tjd Julian Day (UT).
+/// @param ifl Ephemeris flags.
+/// @param geolon Geographic longitude.
+/// @param geolat Geographic latitude.
+/// @param geoalt Geographic altitude (meters).
+/// @returns Object { flags, magnitude, fraction_covered, ... } or error.
+#[wasm_bindgen(js_name = swe_sol_eclipse_how)]
+pub fn js_swe_sol_eclipse_how(tjd: f64, ifl: i32, geolon: f64, geolat: f64, geoalt: f64) -> Result<JsValue, JsValue> {
+    let mut geopos = [geolon, geolat, geoalt];
+    let mut attr = [0.0; 20];
+    let mut serr = cstr_buf();
+    
+    let ret = unsafe {
+        swe_bindings::swe_sol_eclipse_how(tjd, ifl, geopos.as_mut_ptr(), attr.as_mut_ptr(), serr.as_mut_ptr())
+    };
+    
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    
+    let obj = Object::new();
+    let _ = Reflect::set(&obj, &"flags".into(), &ret.into());
+    let _ = Reflect::set(&obj, &"eclipse_fraction".into(), &attr[0].into());
+    let _ = Reflect::set(&obj, &"lunar_diameter_ratio".into(), &attr[1].into());
+    let _ = Reflect::set(&obj, &"solar_diameter".into(), &attr[2].into());
+    let _ = Reflect::set(&obj, &"attr".into(), &serde_to_js_array(&attr));
+    Ok(obj.into())
+}
+
+
+// --- Tier 2: Important Missing APIs ---
+
+/// Find time when Sun crosses a specific longitude (UT).
+///
+/// @param x2cross Longitude to cross (degrees).
+/// @param jd_ut Start Julian Day (UT).
+/// @param flag Ephemeris flags.
+/// @returns Julian Day of crossing, or error.
+#[wasm_bindgen(js_name = swe_solcross_ut)]
+pub fn js_swe_solcross_ut(x2cross: f64, jd_ut: f64, flag: i32) -> Result<f64, JsValue> {
+    let mut serr = cstr_buf();
+    
+    let ret = unsafe {
+        swe_bindings::swe_solcross_ut(x2cross, jd_ut, flag, serr.as_mut_ptr())
+    };
+    
+    if ret < 0.0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    Ok(ret)
+}
+
+/// Find time when Moon crosses a specific longitude (UT).
+///
+/// @param x2cross Longitude to cross (degrees).
+/// @param jd_ut Start Julian Day (UT).
+/// @param flag Ephemeris flags.
+/// @returns Julian Day of crossing, or error.
+#[wasm_bindgen(js_name = swe_mooncross_ut)]
+pub fn js_swe_mooncross_ut(x2cross: f64, jd_ut: f64, flag: i32) -> Result<f64, JsValue> {
+    let mut serr = cstr_buf();
+    
+    let ret = unsafe {
+        swe_bindings::swe_mooncross_ut(x2cross, jd_ut, flag, serr.as_mut_ptr())
+    };
+    
+    if ret < 0.0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    Ok(ret)
+}
+
+/// Find time when Moon crosses its ascending or descending node (UT).
+///
+/// @param jd_ut Start Julian Day (UT).
+/// @param flag Ephemeris flags.
+/// @returns Object { jd, xlon, xlat } or error.
+#[wasm_bindgen(js_name = swe_mooncross_node_ut)]
+pub fn js_swe_mooncross_node_ut(jd_ut: f64, flag: i32) -> Result<JsValue, JsValue> {
+    let mut xlon = 0.0;
+    let mut xlat = 0.0;
+    let mut serr = cstr_buf();
+    
+    let ret = unsafe {
+        swe_bindings::swe_mooncross_node_ut(jd_ut, flag, &mut xlon, &mut xlat, serr.as_mut_ptr())
+    };
+    
+    if ret < 0.0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    
+    let obj = Object::new();
+    let _ = Reflect::set(&obj, &"jd".into(), &ret.into());
+    let _ = Reflect::set(&obj, &"xlon".into(), &xlon.into());
+    let _ = Reflect::set(&obj, &"xlat".into(), &xlat.into());
+    Ok(obj.into())
+}
+
+/// Get Keplerian orbital elements.
+///
+/// @param tjd_et Julian Day (ET).
+/// @param ipl Planet ID.
+/// @param iflag Calculation flags.
+/// @returns Object with orbital elements array, or error.
+#[wasm_bindgen(js_name = swe_get_orbital_elements)]
+pub fn js_swe_get_orbital_elements(tjd_et: f64, ipl: i32, iflag: i32) -> Result<JsValue, JsValue> {
+    let mut dret = [0.0; 50];
+    let mut serr = cstr_buf();
+    
+    let ret = unsafe {
+        swe_bindings::swe_get_orbital_elements(tjd_et, ipl, iflag, dret.as_mut_ptr(), serr.as_mut_ptr())
+    };
+    
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    
+    let obj = Object::new();
+    let _ = Reflect::set(&obj, &"semi_major_axis".into(), &dret[0].into());
+    let _ = Reflect::set(&obj, &"eccentricity".into(), &dret[1].into());
+    let _ = Reflect::set(&obj, &"inclination".into(), &dret[2].into());
+    let _ = Reflect::set(&obj, &"ascending_node".into(), &dret[3].into());
+    let _ = Reflect::set(&obj, &"perihelion".into(), &dret[4].into());
+    let _ = Reflect::set(&obj, &"mean_anomaly".into(), &dret[5].into());
+    let _ = Reflect::set(&obj, &"elements".into(), &serde_to_js_array(&dret));
+    Ok(obj.into())
+}
+
+/// Get fixed star magnitude.
+///
+/// @param star Star name or designation.
+/// @returns Magnitude value, or error.
+#[wasm_bindgen(js_name = swe_fixstar_mag)]
+pub fn js_swe_fixstar_mag(star: String) -> Result<f64, JsValue> {
+    let mut mag = 0.0;
+    let mut serr = cstr_buf();
+    
+    let mut star_bytes = alloc::vec![0u8; 256]; 
+    let s_in = star.as_bytes();
+    for (i, &b) in s_in.iter().enumerate().take(255) { star_bytes[i] = b; }
+    
+    let ret = unsafe {
+        swe_bindings::swe_fixstar_mag(star_bytes.as_mut_ptr() as *mut i8, &mut mag, serr.as_mut_ptr())
+    };
+    
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    Ok(mag)
+}
+
+/// Calculate midpoint of two degree values (shortest arc).
+///
+/// @param x1 First degree value.
+/// @param x0 Second degree value.
+/// @returns Midpoint in degrees.
+#[wasm_bindgen(js_name = swe_deg_midp)]
+pub fn js_swe_deg_midp(x1: f64, x0: f64) -> f64 {
+    unsafe { swe_bindings::swe_deg_midp(x1, x0) }
+}
+
+
+// ============================================================
+// BATCH 1: Core Calculation Functions
+// ============================================================
+
+/// Calculate planet-centric position.
+///
+/// @param tjd Julian Day (ET).
+/// @param ipl Planet ID.
+/// @param iplctr Center planet ID.
+/// @param iflag Calculation flags.
+/// @returns Position object or error.
+#[wasm_bindgen(js_name = swe_calc_pctr)]
+pub fn js_swe_calc_pctr(tjd: f64, ipl: i32, iplctr: i32, iflag: i32) -> Result<JsValue, JsValue> {
+    let mut xx = [0.0; 6];
+    let mut serr = cstr_buf();
+    
+    let ret = unsafe {
+        swe_bindings::swe_calc_pctr(tjd, ipl, iplctr, iflag, xx.as_mut_ptr(), serr.as_mut_ptr())
+    };
+    
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    
+    let obj = Object::new();
+    let _ = Reflect::set(&obj, &"longitude".into(), &xx[0].into());
+    let _ = Reflect::set(&obj, &"latitude".into(), &xx[1].into());
+    let _ = Reflect::set(&obj, &"distance".into(), &xx[2].into());
+    let _ = Reflect::set(&obj, &"speed_long".into(), &xx[3].into());
+    let _ = Reflect::set(&obj, &"speed_lat".into(), &xx[4].into());
+    let _ = Reflect::set(&obj, &"speed_dist".into(), &xx[5].into());
+    let _ = Reflect::set(&obj, &"rc_flags".into(), &ret.into());
+    Ok(obj.into())
+}
+
+/// Find time when Sun crosses a specific longitude (ET).
+#[wasm_bindgen(js_name = swe_solcross)]
+pub fn js_swe_solcross(x2cross: f64, jd_et: f64, flag: i32) -> Result<f64, JsValue> {
+    let mut serr = cstr_buf();
+    let ret = unsafe { swe_bindings::swe_solcross(x2cross, jd_et, flag, serr.as_mut_ptr()) };
+    if ret < 0.0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    Ok(ret)
+}
+
+/// Find time when Moon crosses a specific longitude (ET).
+#[wasm_bindgen(js_name = swe_mooncross)]
+pub fn js_swe_mooncross(x2cross: f64, jd_et: f64, flag: i32) -> Result<f64, JsValue> {
+    let mut serr = cstr_buf();
+    let ret = unsafe { swe_bindings::swe_mooncross(x2cross, jd_et, flag, serr.as_mut_ptr()) };
+    if ret < 0.0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    Ok(ret)
+}
+
+/// Find time when Moon crosses its node (ET).
+#[wasm_bindgen(js_name = swe_mooncross_node)]
+pub fn js_swe_mooncross_node(jd_et: f64, flag: i32) -> Result<JsValue, JsValue> {
+    let mut xlon = 0.0;
+    let mut xlat = 0.0;
+    let mut serr = cstr_buf();
+    let ret = unsafe { swe_bindings::swe_mooncross_node(jd_et, flag, &mut xlon, &mut xlat, serr.as_mut_ptr()) };
+    if ret < 0.0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    let obj = Object::new();
+    let _ = Reflect::set(&obj, &"jd".into(), &ret.into());
+    let _ = Reflect::set(&obj, &"xlon".into(), &xlon.into());
+    let _ = Reflect::set(&obj, &"xlat".into(), &xlat.into());
+    Ok(obj.into())
+}
+
+/// Find heliocentric crossing time (ET).
+#[wasm_bindgen(js_name = swe_helio_cross)]
+pub fn js_swe_helio_cross(ipl: i32, x2cross: f64, jd_et: f64, iflag: i32, dir: i32) -> Result<f64, JsValue> {
+    let mut jd_cross = 0.0;
+    let mut serr = cstr_buf();
+    let ret = unsafe { swe_bindings::swe_helio_cross(ipl, x2cross, jd_et, iflag, dir, &mut jd_cross, serr.as_mut_ptr()) };
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    Ok(jd_cross)
+}
+
+/// Find heliocentric crossing time (UT).
+#[wasm_bindgen(js_name = swe_helio_cross_ut)]
+pub fn js_swe_helio_cross_ut(ipl: i32, x2cross: f64, jd_ut: f64, iflag: i32, dir: i32) -> Result<f64, JsValue> {
+    let mut jd_cross = 0.0;
+    let mut serr = cstr_buf();
+    let ret = unsafe { swe_bindings::swe_helio_cross_ut(ipl, x2cross, jd_ut, iflag, dir, &mut jd_cross, serr.as_mut_ptr()) };
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    Ok(jd_cross)
+}
+
+
+// ============================================================
+// BATCH 2: Fixed Stars Functions
+// ============================================================
+
+/// Calculate fixed star position (ET).
+#[wasm_bindgen(js_name = swe_fixstar)]
+pub fn js_swe_fixstar(star: String, tjd: f64, iflag: i32) -> Result<JsValue, JsValue> {
+    let mut xx = [0.0; 6];
+    let mut serr = cstr_buf();
+    let mut star_bytes = alloc::vec![0u8; 256];
+    let s_in = star.as_bytes();
+    for (i, &b) in s_in.iter().enumerate().take(255) { star_bytes[i] = b; }
+    
+    let ret = unsafe { swe_bindings::swe_fixstar(star_bytes.as_mut_ptr() as *mut i8, tjd, iflag, xx.as_mut_ptr(), serr.as_mut_ptr()) };
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    
+    let returned_name = unsafe { CStr::from_ptr(star_bytes.as_ptr() as *const i8).to_str().unwrap_or(&star).to_string() };
+    let obj = Object::new();
+    let _ = Reflect::set(&obj, &"name".into(), &returned_name.into());
+    let _ = Reflect::set(&obj, &"longitude".into(), &xx[0].into());
+    let _ = Reflect::set(&obj, &"latitude".into(), &xx[1].into());
+    let _ = Reflect::set(&obj, &"distance".into(), &xx[2].into());
+    let _ = Reflect::set(&obj, &"rc_flags".into(), &ret.into());
+    Ok(obj.into())
+}
+
+/// Calculate fixed star position using alternative catalog (ET).
+#[wasm_bindgen(js_name = swe_fixstar2)]
+pub fn js_swe_fixstar2(star: String, tjd: f64, iflag: i32) -> Result<JsValue, JsValue> {
+    let mut xx = [0.0; 6];
+    let mut serr = cstr_buf();
+    let mut star_bytes = alloc::vec![0u8; 256];
+    let s_in = star.as_bytes();
+    for (i, &b) in s_in.iter().enumerate().take(255) { star_bytes[i] = b; }
+    
+    let ret = unsafe { swe_bindings::swe_fixstar2(star_bytes.as_mut_ptr() as *mut i8, tjd, iflag, xx.as_mut_ptr(), serr.as_mut_ptr()) };
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    
+    let obj = Object::new();
+    let _ = Reflect::set(&obj, &"longitude".into(), &xx[0].into());
+    let _ = Reflect::set(&obj, &"latitude".into(), &xx[1].into());
+    let _ = Reflect::set(&obj, &"distance".into(), &xx[2].into());
+    let _ = Reflect::set(&obj, &"rc_flags".into(), &ret.into());
+    Ok(obj.into())
+}
+
+/// Calculate fixed star position using alternative catalog (UT).
+#[wasm_bindgen(js_name = swe_fixstar2_ut)]
+pub fn js_swe_fixstar2_ut(star: String, tjd_ut: f64, iflag: i32) -> Result<JsValue, JsValue> {
+    let mut xx = [0.0; 6];
+    let mut serr = cstr_buf();
+    let mut star_bytes = alloc::vec![0u8; 256];
+    let s_in = star.as_bytes();
+    for (i, &b) in s_in.iter().enumerate().take(255) { star_bytes[i] = b; }
+    
+    let ret = unsafe { swe_bindings::swe_fixstar2_ut(star_bytes.as_mut_ptr() as *mut i8, tjd_ut, iflag, xx.as_mut_ptr(), serr.as_mut_ptr()) };
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    
+    let obj = Object::new();
+    let _ = Reflect::set(&obj, &"longitude".into(), &xx[0].into());
+    let _ = Reflect::set(&obj, &"latitude".into(), &xx[1].into());
+    let _ = Reflect::set(&obj, &"distance".into(), &xx[2].into());
+    let _ = Reflect::set(&obj, &"rc_flags".into(), &ret.into());
+    Ok(obj.into())
+}
+
+/// Get fixed star magnitude using alternative catalog.
+#[wasm_bindgen(js_name = swe_fixstar2_mag)]
+pub fn js_swe_fixstar2_mag(star: String) -> Result<f64, JsValue> {
+    let mut mag = 0.0;
+    let mut serr = cstr_buf();
+    let mut star_bytes = alloc::vec![0u8; 256];
+    let s_in = star.as_bytes();
+    for (i, &b) in s_in.iter().enumerate().take(255) { star_bytes[i] = b; }
+    
+    let ret = unsafe { swe_bindings::swe_fixstar2_mag(star_bytes.as_mut_ptr() as *mut i8, &mut mag, serr.as_mut_ptr()) };
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    Ok(mag)
+}
+
+
+// ============================================================
+// BATCH 3: Date/Time Functions
+// ============================================================
+
+/// Validate and convert date.
+#[wasm_bindgen(js_name = swe_date_conversion)]
+pub fn js_swe_date_conversion(year: i32, month: i32, day: i32, utime: f64, calendar: String) -> Result<f64, JsValue> {
+    let mut tjd = 0.0;
+    let c = calendar.chars().next().unwrap_or('g') as i8;
+    let ret = unsafe { swe_bindings::swe_date_conversion(year, month, day, utime, c, &mut tjd) };
+    if ret < 0 { return Err(JsValue::from_str("Invalid date")); }
+    Ok(tjd)
+}
+
+/// Convert UTC time with timezone offset.
+#[wasm_bindgen(js_name = swe_utc_time_zone)]
+pub fn js_swe_utc_time_zone(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: f64, d_timezone: f64) -> JsValue {
+    let mut year_out = 0;
+    let mut month_out = 0;
+    let mut day_out = 0;
+    let mut hour_out = 0;
+    let mut min_out = 0;
+    let mut sec_out = 0.0;
+    
+    unsafe {
+        swe_bindings::swe_utc_time_zone(year, month, day, hour, min, sec, d_timezone,
+            &mut year_out, &mut month_out, &mut day_out, &mut hour_out, &mut min_out, &mut sec_out);
+    }
+    
+    let obj = Object::new();
+    let _ = Reflect::set(&obj, &"year".into(), &year_out.into());
+    let _ = Reflect::set(&obj, &"month".into(), &month_out.into());
+    let _ = Reflect::set(&obj, &"day".into(), &day_out.into());
+    let _ = Reflect::set(&obj, &"hour".into(), &hour_out.into());
+    let _ = Reflect::set(&obj, &"min".into(), &min_out.into());
+    let _ = Reflect::set(&obj, &"sec".into(), &sec_out.into());
+    obj.into()
+}
+
+/// Calculate equation of time.
+#[wasm_bindgen(js_name = swe_time_equ)]
+pub fn js_swe_time_equ(tjd: f64) -> Result<f64, JsValue> {
+    let mut te = 0.0;
+    let mut serr = cstr_buf();
+    let ret = unsafe { swe_bindings::swe_time_equ(tjd, &mut te, serr.as_mut_ptr()) };
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    Ok(te)
+}
+
+/// Convert Local Mean Time to Local Apparent Time.
+#[wasm_bindgen(js_name = swe_lmt_to_lat)]
+pub fn js_swe_lmt_to_lat(tjd_lmt: f64, geolon: f64) -> Result<f64, JsValue> {
+    let mut tjd_lat = 0.0;
+    let mut serr = cstr_buf();
+    let ret = unsafe { swe_bindings::swe_lmt_to_lat(tjd_lmt, geolon, &mut tjd_lat, serr.as_mut_ptr()) };
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    Ok(tjd_lat)
+}
+
+/// Convert Local Apparent Time to Local Mean Time.
+#[wasm_bindgen(js_name = swe_lat_to_lmt)]
+pub fn js_swe_lat_to_lmt(tjd_lat: f64, geolon: f64) -> Result<f64, JsValue> {
+    let mut tjd_lmt = 0.0;
+    let mut serr = cstr_buf();
+    let ret = unsafe { swe_bindings::swe_lat_to_lmt(tjd_lat, geolon, &mut tjd_lmt, serr.as_mut_ptr()) };
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    Ok(tjd_lmt)
+}
+
+/// Calculate sidereal time with custom obliquity and nutation.
+#[wasm_bindgen(js_name = swe_sidtime0)]
+pub fn js_swe_sidtime0(tjd_ut: f64, eps: f64, nut: f64) -> f64 {
+    unsafe { swe_bindings::swe_sidtime0(tjd_ut, eps, nut) }
+}
+
+
+// ============================================================
+// BATCH 4: Houses Functions
+// ============================================================
+
+/// Calculate house cusps with speeds.
+#[wasm_bindgen(js_name = swe_houses_ex2)]
+pub fn js_swe_houses_ex2(tjd_ut: f64, iflag: i32, geolat: f64, geolon: f64, hsys: String) -> Result<JsValue, JsValue> {
+    let hsys_char = hsys.chars().next().unwrap_or('P') as i32;
+    let mut cusps = [0.0; 37]; // For Gauquelin houses
+    let mut ascmc = [0.0; 10];
+    let mut cusp_speed = [0.0; 37];
+    let mut ascmc_speed = [0.0; 10];
+    let mut serr = cstr_buf();
+    
+    let ret = unsafe {
+        swe_bindings::swe_houses_ex2(tjd_ut, iflag, geolat, geolon, hsys_char, 
+            cusps.as_mut_ptr(), ascmc.as_mut_ptr(), cusp_speed.as_mut_ptr(), ascmc_speed.as_mut_ptr(), serr.as_mut_ptr())
+    };
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    
+    let obj = Object::new();
+    let js_cusps = Array::new();
+    for i in 1..=12 { js_cusps.push(&cusps[i].into()); }
+    let _ = Reflect::set(&obj, &"cusps".into(), &js_cusps);
+    let _ = Reflect::set(&obj, &"ascendant".into(), &ascmc[0].into());
+    let _ = Reflect::set(&obj, &"mc".into(), &ascmc[1].into());
+    let _ = Reflect::set(&obj, &"armc".into(), &ascmc[2].into());
+    let _ = Reflect::set(&obj, &"vertex".into(), &ascmc[3].into());
+    let js_speeds = Array::new();
+    for i in 1..=12 { js_speeds.push(&cusp_speed[i].into()); }
+    let _ = Reflect::set(&obj, &"cusp_speeds".into(), &js_speeds);
+    Ok(obj.into())
+}
+
+/// Calculate houses from ARMC.
+#[wasm_bindgen(js_name = swe_houses_armc)]
+pub fn js_swe_houses_armc(armc: f64, geolat: f64, eps: f64, hsys: String) -> Result<JsValue, JsValue> {
+    let hsys_char = hsys.chars().next().unwrap_or('P') as i32;
+    let mut cusps = [0.0; 13];
+    let mut ascmc = [0.0; 10];
+    
+    let ret = unsafe { swe_bindings::swe_houses_armc(armc, geolat, eps, hsys_char, cusps.as_mut_ptr(), ascmc.as_mut_ptr()) };
+    if ret < 0 { return Err(JsValue::from_str("swe_houses_armc failed")); }
+    
+    let obj = Object::new();
+    let js_cusps = Array::new();
+    for i in 1..=12 { js_cusps.push(&cusps[i].into()); }
+    let _ = Reflect::set(&obj, &"cusps".into(), &js_cusps);
+    let _ = Reflect::set(&obj, &"ascendant".into(), &ascmc[0].into());
+    let _ = Reflect::set(&obj, &"mc".into(), &ascmc[1].into());
+    Ok(obj.into())
+}
+
+/// Calculate houses from ARMC with speeds.
+#[wasm_bindgen(js_name = swe_houses_armc_ex2)]
+pub fn js_swe_houses_armc_ex2(armc: f64, geolat: f64, eps: f64, hsys: String) -> Result<JsValue, JsValue> {
+    let hsys_char = hsys.chars().next().unwrap_or('P') as i32;
+    let mut cusps = [0.0; 37];
+    let mut ascmc = [0.0; 10];
+    let mut cusp_speed = [0.0; 37];
+    let mut ascmc_speed = [0.0; 10];
+    let mut serr = cstr_buf();
+    
+    let ret = unsafe {
+        swe_bindings::swe_houses_armc_ex2(armc, geolat, eps, hsys_char, 
+            cusps.as_mut_ptr(), ascmc.as_mut_ptr(), cusp_speed.as_mut_ptr(), ascmc_speed.as_mut_ptr(), serr.as_mut_ptr())
+    };
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    
+    let obj = Object::new();
+    let js_cusps = Array::new();
+    for i in 1..=12 { js_cusps.push(&cusps[i].into()); }
+    let _ = Reflect::set(&obj, &"cusps".into(), &js_cusps);
+    let _ = Reflect::set(&obj, &"ascendant".into(), &ascmc[0].into());
+    let _ = Reflect::set(&obj, &"mc".into(), &ascmc[1].into());
+    Ok(obj.into())
+}
+
+
+// ============================================================
+// BATCH 5: Eclipses & Occultations Functions
+// ============================================================
+
+/// Find next local lunar eclipse.
+#[wasm_bindgen(js_name = swe_lun_eclipse_when_loc)]
+pub fn js_swe_lun_eclipse_when_loc(tjd_start: f64, ifl: i32, geolon: f64, geolat: f64, geoalt: f64, backward: i32) -> Result<JsValue, JsValue> {
+    let mut geopos = [geolon, geolat, geoalt];
+    let mut tret = [0.0; 10];
+    let mut attr = [0.0; 20];
+    let mut serr = cstr_buf();
+    
+    let ret = unsafe {
+        swe_bindings::swe_lun_eclipse_when_loc(tjd_start, ifl, geopos.as_mut_ptr(), tret.as_mut_ptr(), attr.as_mut_ptr(), backward, serr.as_mut_ptr())
+    };
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    
+    let obj = Object::new();
+    let _ = Reflect::set(&obj, &"flags".into(), &ret.into());
+    let _ = Reflect::set(&obj, &"tret".into(), &serde_to_js_array(&tret));
+    let _ = Reflect::set(&obj, &"attr".into(), &serde_to_js_array(&attr));
+    Ok(obj.into())
+}
+
+/// Find occultation location.
+#[wasm_bindgen(js_name = swe_lun_occult_where)]
+pub fn js_swe_lun_occult_where(tjd: f64, ipl: i32, starname: Option<String>, ifl: i32) -> Result<JsValue, JsValue> {
+    let mut geopos = [0.0; 2];
+    let mut attr = [0.0; 20];
+    let mut serr = cstr_buf();
+    let (_star_bytes, star_ptr) = if let Some(s) = starname { string_to_c_ptr(&s) } else { (Vec::new(), core::ptr::null_mut()) };
+    
+    let ret = unsafe {
+        swe_bindings::swe_lun_occult_where(tjd, ipl, star_ptr, ifl, geopos.as_mut_ptr(), attr.as_mut_ptr(), serr.as_mut_ptr())
+    };
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    
+    let obj = Object::new();
+    let _ = Reflect::set(&obj, &"flags".into(), &ret.into());
+    let _ = Reflect::set(&obj, &"lon".into(), &geopos[0].into());
+    let _ = Reflect::set(&obj, &"lat".into(), &geopos[1].into());
+    let _ = Reflect::set(&obj, &"attr".into(), &serde_to_js_array(&attr));
+    Ok(obj.into())
+}
+
+/// Find local occultation.
+#[wasm_bindgen(js_name = swe_lun_occult_when_loc)]
+pub fn js_swe_lun_occult_when_loc(tjd_start: f64, ipl: i32, starname: Option<String>, ifl: i32, geolon: f64, geolat: f64, geoalt: f64, backward: i32) -> Result<JsValue, JsValue> {
+    let mut geopos = [geolon, geolat, geoalt];
+    let mut tret = [0.0; 10];
+    let mut attr = [0.0; 20];
+    let mut serr = cstr_buf();
+    let (_star_bytes, star_ptr) = if let Some(s) = starname { string_to_c_ptr(&s) } else { (Vec::new(), core::ptr::null_mut()) };
+    
+    let ret = unsafe {
+        swe_bindings::swe_lun_occult_when_loc(tjd_start, ipl, star_ptr, ifl, geopos.as_mut_ptr(), tret.as_mut_ptr(), attr.as_mut_ptr(), backward, serr.as_mut_ptr())
+    };
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    
+    let obj = Object::new();
+    let _ = Reflect::set(&obj, &"flags".into(), &ret.into());
+    let _ = Reflect::set(&obj, &"tret".into(), &serde_to_js_array(&tret));
+    let _ = Reflect::set(&obj, &"attr".into(), &serde_to_js_array(&attr));
+    Ok(obj.into())
+}
+
+/// Find global occultation.
+#[wasm_bindgen(js_name = swe_lun_occult_when_glob)]
+pub fn js_swe_lun_occult_when_glob(tjd_start: f64, ipl: i32, starname: Option<String>, ifl: i32, ifltype: i32, backward: i32) -> Result<JsValue, JsValue> {
+    let mut tret = [0.0; 10];
+    let mut serr = cstr_buf();
+    let (_star_bytes, star_ptr) = if let Some(s) = starname { string_to_c_ptr(&s) } else { (Vec::new(), core::ptr::null_mut()) };
+    
+    let ret = unsafe {
+        swe_bindings::swe_lun_occult_when_glob(tjd_start, ipl, star_ptr, ifl, ifltype, tret.as_mut_ptr(), backward, serr.as_mut_ptr())
+    };
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    
+    let obj = Object::new();
+    let _ = Reflect::set(&obj, &"flags".into(), &ret.into());
+    let _ = Reflect::set(&obj, &"tret".into(), &serde_to_js_array(&tret));
+    Ok(obj.into())
+}
+
+/// Calculate Gauquelin sector position.
+#[wasm_bindgen(js_name = swe_gauquelin_sector)]
+pub fn js_swe_gauquelin_sector(t_ut: f64, ipl: i32, starname: Option<String>, iflag: i32, imeth: i32, geolon: f64, geolat: f64, geoalt: f64, atpress: f64, attemp: f64) -> Result<f64, JsValue> {
+    let mut geopos = [geolon, geolat, geoalt];
+    let mut dgsect = 0.0;
+    let mut serr = cstr_buf();
+    let (_star_bytes, star_ptr) = if let Some(s) = starname { string_to_c_ptr(&s) } else { (Vec::new(), core::ptr::null_mut()) };
+    
+    let ret = unsafe {
+        swe_bindings::swe_gauquelin_sector(t_ut, ipl, star_ptr, iflag, imeth, geopos.as_mut_ptr(), atpress, attemp, &mut dgsect, serr.as_mut_ptr())
+    };
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    Ok(dgsect)
+}
+
+
+// ============================================================
+// BATCH 6: Phenomena Functions
+// ============================================================
+
+/// Calculate planetary phenomena (ET).
+#[wasm_bindgen(js_name = swe_pheno)]
+pub fn js_swe_pheno(tjd: f64, ipl: i32, iflag: i32) -> Result<JsValue, JsValue> {
+    let mut attr = [0.0; 20];
+    let mut serr = cstr_buf();
+    let ret = unsafe { swe_bindings::swe_pheno(tjd, ipl, iflag, attr.as_mut_ptr(), serr.as_mut_ptr()) };
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    
+    let obj = Object::new();
+    let _ = Reflect::set(&obj, &"phase_angle".into(), &attr[0].into());
+    let _ = Reflect::set(&obj, &"phase".into(), &attr[1].into());
+    let _ = Reflect::set(&obj, &"elongation".into(), &attr[2].into());
+    let _ = Reflect::set(&obj, &"diameter".into(), &attr[3].into());
+    let _ = Reflect::set(&obj, &"magnitude".into(), &attr[4].into());
+    Ok(obj.into())
+}
+
+/// Calculate nodes and apsides (ET).
+#[wasm_bindgen(js_name = swe_nod_aps)]
+pub fn js_swe_nod_aps(tjd_et: f64, ipl: i32, iflag: i32, method: i32) -> Result<JsValue, JsValue> {
+    let mut xnasc = [0.0; 6];
+    let mut xndsc = [0.0; 6];
+    let mut xperi = [0.0; 6];
+    let mut xaphe = [0.0; 6];
+    let mut serr = cstr_buf();
+
+    let ret = unsafe {
+        swe_bindings::swe_nod_aps(tjd_et, ipl, iflag, method, 
+            xnasc.as_mut_ptr(), xndsc.as_mut_ptr(), xperi.as_mut_ptr(), xaphe.as_mut_ptr(), serr.as_mut_ptr())
+    };
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    
+    let obj = Object::new();
+    let _ = Reflect::set(&obj, &"node_ascending".into(), &serde_to_js_array(&xnasc));
+    let _ = Reflect::set(&obj, &"node_descending".into(), &serde_to_js_array(&xndsc));
+    let _ = Reflect::set(&obj, &"perihelion".into(), &serde_to_js_array(&xperi));
+    let _ = Reflect::set(&obj, &"aphelion".into(), &serde_to_js_array(&xaphe));
+    Ok(obj.into())
+}
+
+/// Get orbital distance extremes.
+#[wasm_bindgen(js_name = swe_orbit_max_min_true_distance)]
+pub fn js_swe_orbit_max_min_true_distance(tjd_et: f64, ipl: i32, iflag: i32) -> Result<JsValue, JsValue> {
+    let mut dmax = 0.0;
+    let mut dmin = 0.0;
+    let mut dtrue = 0.0;
+    let mut serr = cstr_buf();
+    
+    let ret = unsafe {
+        swe_bindings::swe_orbit_max_min_true_distance(tjd_et, ipl, iflag, &mut dmax, &mut dmin, &mut dtrue, serr.as_mut_ptr())
+    };
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    
+    let obj = Object::new();
+    let _ = Reflect::set(&obj, &"max_distance".into(), &dmax.into());
+    let _ = Reflect::set(&obj, &"min_distance".into(), &dmin.into());
+    let _ = Reflect::set(&obj, &"true_distance".into(), &dtrue.into());
+    Ok(obj.into())
+}
+
+
+// ============================================================
+// BATCH 7: Heliacal Functions
+// ============================================================
+
+/// Get heliacal phenomena details.
+#[wasm_bindgen(js_name = swe_heliacal_pheno_ut)]
+pub fn js_swe_heliacal_pheno_ut(tjd: f64, geo_lon: f64, geo_lat: f64, geo_alt: f64,
+                                 atm_press: f64, atm_temp: f64, atm_humid: f64, atm_vis: f64,
+                                 obs_age: f64, obs_snellen: f64,
+                                 object_name: String, event_type: i32, helflag: i32) -> Result<JsValue, JsValue> {
+    let mut dgeo = [geo_lon, geo_lat, geo_alt];
+    let mut datm = [atm_press, atm_temp, atm_humid, atm_vis];
+    let mut dobs = [obs_age, obs_snellen, 0.0, 0.0, 0.0, 0.0];
+    let mut darr = [0.0; 50];
+    let mut serr = cstr_buf();
+    let (obj_bytes, obj_ptr) = string_to_c_ptr(&object_name);
+    
+    let ret = unsafe {
+        swe_bindings::swe_heliacal_pheno_ut(tjd, dgeo.as_mut_ptr(), datm.as_mut_ptr(), dobs.as_mut_ptr(),
+            obj_ptr, event_type, helflag, darr.as_mut_ptr(), serr.as_mut_ptr())
+    };
+    drop(obj_bytes);
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    
+    let obj = Object::new();
+    let _ = Reflect::set(&obj, &"tcrit".into(), &darr[0].into());
+    let _ = Reflect::set(&obj, &"result".into(), &serde_to_js_array(&darr));
+    Ok(obj.into())
+}
+
+
+// ============================================================
+// BATCH 8: Utilities Functions
+// ============================================================
+
+/// Get Delta T with ephemeris flag.
+#[wasm_bindgen(js_name = swe_deltat_ex)]
+pub fn js_swe_deltat_ex(tjd: f64, iflag: i32) -> Result<f64, JsValue> {
+    let mut serr = cstr_buf();
+    let ret = unsafe { swe_bindings::swe_deltat_ex(tjd, iflag, serr.as_mut_ptr()) };
+    Ok(ret)
+}
+
+/// Get current tidal acceleration.
+#[wasm_bindgen(js_name = swe_get_tid_acc)]
+pub fn js_swe_get_tid_acc() -> f64 {
+    unsafe { swe_bindings::swe_get_tid_acc() }
+}
+
+/// Calculate radian midpoint.
+#[wasm_bindgen(js_name = swe_rad_midp)]
+pub fn js_swe_rad_midp(x1: f64, x0: f64) -> f64 {
+    unsafe { swe_bindings::swe_rad_midp(x1, x0) }
+}
+
+/// Normalize centiseconds.
+#[wasm_bindgen(js_name = swe_csnorm)]
+pub fn js_swe_csnorm(p: i32) -> i32 {
+    unsafe { swe_bindings::swe_csnorm(p) }
+}
+
+/// Centisecond difference (normalized to positive).
+#[wasm_bindgen(js_name = swe_difcsn)]
+pub fn js_swe_difcsn(p1: i32, p2: i32) -> i32 {
+    unsafe { swe_bindings::swe_difcsn(p1, p2) }
+}
+
+/// Degree difference (normalized to positive).
+#[wasm_bindgen(js_name = swe_difdegn)]
+pub fn js_swe_difdegn(p1: f64, p2: f64) -> f64 {
+    unsafe { swe_bindings::swe_difdegn(p1, p2) }
+}
+
+/// Centisecond difference (signed).
+#[wasm_bindgen(js_name = swe_difcs2n)]
+pub fn js_swe_difcs2n(p1: i32, p2: i32) -> i32 {
+    unsafe { swe_bindings::swe_difcs2n(p1, p2) }
+}
+
+/// Degree difference (signed).
+#[wasm_bindgen(js_name = swe_difdeg2n)]
+pub fn js_swe_difdeg2n(p1: f64, p2: f64) -> f64 {
+    unsafe { swe_bindings::swe_difdeg2n(p1, p2) }
+}
+
+/// Radian difference (signed).
+#[wasm_bindgen(js_name = swe_difrad2n)]
+pub fn js_swe_difrad2n(p1: f64, p2: f64) -> f64 {
+    unsafe { swe_bindings::swe_difrad2n(p1, p2) }
+}
+
+/// Round centiseconds.
+#[wasm_bindgen(js_name = swe_csroundsec)]
+pub fn js_swe_csroundsec(x: i32) -> i32 {
+    unsafe { swe_bindings::swe_csroundsec(x) }
+}
+
+/// Double to long with rounding.
+#[wasm_bindgen(js_name = swe_d2l)]
+pub fn js_swe_d2l(x: f64) -> i32 {
+    unsafe { swe_bindings::swe_d2l(x) }
+}
+
+
+// ============================================================
+// BATCH 9: Configuration Functions
+// ============================================================
+
+/// Set atmospheric lapse rate.
+#[wasm_bindgen(js_name = swe_set_lapse_rate)]
+pub fn js_swe_set_lapse_rate(lapse_rate: f64) {
+    unsafe { swe_bindings::swe_set_lapse_rate(lapse_rate); }
+}
+
+/// Set tidal acceleration.
+#[wasm_bindgen(js_name = swe_set_tid_acc)]
+pub fn js_swe_set_tid_acc(t_acc: f64) {
+    unsafe { swe_bindings::swe_set_tid_acc(t_acc); }
+}
+
+/// Set user-defined Delta T.
+#[wasm_bindgen(js_name = swe_set_delta_t_userdef)]
+pub fn js_swe_set_delta_t_userdef(dt: f64) {
+    unsafe { swe_bindings::swe_set_delta_t_userdef(dt); }
+}
+
+/// Enable/disable nutation interpolation.
+#[wasm_bindgen(js_name = swe_set_interpolate_nut)]
+pub fn js_swe_set_interpolate_nut(do_interpolate: i32) {
+    unsafe { swe_bindings::swe_set_interpolate_nut(do_interpolate); }
+}
+
+
+// ============================================================
+// BATCH 10: Ayanamsa Functions
+// ============================================================
+
+/// Get ayanamsa (ET).
+#[wasm_bindgen(js_name = swe_get_ayanamsa)]
+pub fn js_swe_get_ayanamsa(tjd_et: f64) -> f64 {
+    unsafe { swe_bindings::swe_get_ayanamsa(tjd_et) }
+}
+
+/// Get ayanamsa extended (ET).
+#[wasm_bindgen(js_name = swe_get_ayanamsa_ex)]
+pub fn js_swe_get_ayanamsa_ex(tjd_et: f64, iflag: i32) -> Result<f64, JsValue> {
+    let mut daya = 0.0;
+    let mut serr = cstr_buf();
+    let ret = unsafe { swe_bindings::swe_get_ayanamsa_ex(tjd_et, iflag, &mut daya, serr.as_mut_ptr()) };
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    Ok(daya)
+}
+
+/// Get ayanamsa extended (UT).
+#[wasm_bindgen(js_name = swe_get_ayanamsa_ex_ut)]
+pub fn js_swe_get_ayanamsa_ex_ut(tjd_ut: f64, iflag: i32) -> Result<f64, JsValue> {
+    let mut daya = 0.0;
+    let mut serr = cstr_buf();
+    let ret = unsafe { swe_bindings::swe_get_ayanamsa_ex_ut(tjd_ut, iflag, &mut daya, serr.as_mut_ptr()) };
+    if ret < 0 { return Err(JsValue::from_str(&err_to_string(&serr))); }
+    Ok(daya)
+}
 
 
 // --- REQUIRED C SHIMS FOR WASM ---
