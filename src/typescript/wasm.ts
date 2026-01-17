@@ -3067,6 +3067,35 @@ export class SwissEph {
     return { tret, attr, ret_flag: ret, error };
   }
 
+  static initSync(wasmBinary: Uint8Array): SwissEph {
+    let mem: WebAssembly.Memory | undefined;
+    const imports = {
+      env: {
+        console_log: (ptr: number, len: number) => {
+          if (mem) {
+            const buf = new Uint8Array(mem.buffer, ptr, len);
+            console.log("[ZIG]", new TextDecoder().decode(buf));
+          } else {
+            console.log(`[ZIG-PRE] console_log(${ptr}, ${len})`);
+          }
+        },
+        console_char: (c: number) => {
+          console.log(`[ZIG-CHAR] ${String.fromCharCode(c)}`);
+        },
+      },
+    };
+
+    const module = new WebAssembly.Module(wasmBinary as BufferSource);
+    const instance = new WebAssembly.Instance(module, imports);
+
+    mem = (instance.exports as any).memory as WebAssembly.Memory;
+    if (typeof (instance.exports as any).wasm_start === "function") {
+      (instance.exports as any).wasm_start();
+    }
+
+    return new SwissEph(instance);
+  }
+
   static async init(wasmBinary?: Uint8Array | Response): Promise<SwissEph> {
     let module: WebAssembly.Instance;
 

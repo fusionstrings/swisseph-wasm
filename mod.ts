@@ -3,8 +3,8 @@ export * from "./src/typescript/constants.ts";
 
 // Load Wasm
 const wasmUrl = new URL("./lib/swisseph_wasm.wasm", import.meta.url);
-const wasmBinary = await Deno.readFile(wasmUrl);
-const inst = await SwissEph.init(wasmBinary);
+const wasmBinary = Deno.readFileSync(wasmUrl);
+const inst = SwissEph.initSync(wasmBinary);
 
 // Bind exports
 export const swe_version = inst.swe_version.bind(inst);

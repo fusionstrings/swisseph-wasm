@@ -4,8 +4,19 @@ import denoJson from "../deno.json" with { type: "json" };
 await emptyDir("./npm");
 
 await build({
-  entryPoints: ["./mod.ts"],
+  entryPoints: [
+    "./mod.ts",
+    {
+      name: "./browser",
+      path: "./lib/browser/swisseph_wasm.js",
+    },
+    {
+      name: "./constants",
+      path: "./src/typescript/constants.ts",
+    },
+  ],
   outDir: "./npm",
+  typeCheck: false,
   test: false,
   shims: {
     // We don't need Deno shims for this pure/WASM lib usually,
@@ -13,9 +24,9 @@ await build({
     // The WASM loader uses `URL` and `import.meta.url`, which dnt polyfills.
     deno: true,
   },
-  mappings: {
-    "./lib/swisseph_wasm.js": "./src/wasm_node.ts",
-    "./lib/swisseph_wasm.d.ts": "./src/wasm_node.ts",
+  compilerOptions: {
+    lib: ["ESNext", "DOM"],
+    skipLibCheck: true,
   },
   package: {
     // Must match package.json details
@@ -39,8 +50,12 @@ await build({
         require: "./script/mod.js",
       },
       "./browser": {
-        import: "./browser/swisseph_wasm.js",
-        types: "./browser/swisseph_wasm.d.ts",
+        import: "./esm/lib/browser/swisseph_wasm.js",
+        require: "./script/lib/browser/swisseph_wasm.js",
+      },
+      "./constants": {
+        import: "./esm/src/typescript/constants.js",
+        require: "./script/src/typescript/constants.js",
       },
       "./wasm": "./esm/lib/swisseph_wasm.wasm",
     },
@@ -69,16 +84,8 @@ await build({
       `${libDirScript}/swisseph_wasm.wasm`,
     );
 
-    // Copy Browser Build (Inlined)
-    const browserDir = "npm/browser";
-    Deno.mkdirSync(browserDir, { recursive: true });
-    Deno.copyFileSync(
-      "lib/browser/swisseph_wasm.js",
-      `${browserDir}/swisseph_wasm.js`,
-    );
-    Deno.copyFileSync(
-      "lib/browser/swisseph_wasm.d.ts",
-      `${browserDir}/swisseph_wasm.d.ts`,
-    );
+    // Browser files are already copied/transformed by dnt because they were in entryPoints
+    // But we might need to ensure the .wasm file if it's referenced.
+    // However, the browser build is "inlined" so it shouldn't need a separate .wasm file.
   },
 });
