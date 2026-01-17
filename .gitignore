@@ -1,8 +1,23 @@
+# Build outputs
 /target
-src/constants.ts
 lib/
 npm/
+zig-out/
+
+# Generated files
+src/constants.ts
+
+# Vendored dependencies
+vendor/
+
+# Compiled binaries
+compare_precision
+mem_audit_test
+
+# Environment and OS files
 .env
 .DS_Store
+
+# Caches
 node_modules
 .zig-cache
