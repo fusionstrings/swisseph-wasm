@@ -5,3 +5,4 @@ npm/
 .env
 .DS_Store
 node_modules
+.zig-cache
