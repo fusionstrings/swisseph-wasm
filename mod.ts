@@ -128,3 +128,5 @@ export const sqrt = inst.sqrt.bind(inst);
 export const exp = inst.exp.bind(inst);
 export const log = inst.log.bind(inst);
 export const pow = inst.pow.bind(inst);
+// VFS
+export const injectEphemerisFile = inst.injectEphemerisFile.bind(inst);

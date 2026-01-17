@@ -258,9 +258,7 @@ export fn wasm_start() callconv(.c) void {
 
 
 
-// --- Math ---
-// Software implementations to avoid recursion (Zig's std.math calls exported symbols)
-const PI: f64 = 3.14159265358979323846;
+const PI = 3.14159265358979323846;
 const TWO_PI: f64 = 6.28318530717958647692;
 
 fn normalize_angle(x: f64) f64 {
@@ -471,57 +469,269 @@ export fn printf(_: ?[*:0]const u8, ...) callconv(.c) c_int {
 }
 
 export fn sprintf(str: ?[*:0]u8, format: ?[*:0]const u8, ...) callconv(.c) c_int {
-    if (str != null and format != null) {
-        var i: usize = 0;
-        while (format.?[i] != 0) : (i += 1) {
-            str.?[i] = format.?[i];
+    if (str == null or format == null) return 0;
+    const fmt = std.mem.span(format.?);
+    var va = @cVaStart();
+    defer @cVaEnd(&va);
+
+    var i: usize = 0; // index in format
+    var j: usize = 0; // index in output str
+    while (i < fmt.len) {
+        if (fmt[i] == '%' and i + 1 < fmt.len) {
+            i += 1;
+            // Handle padding like %02d
+            var width: usize = 0;
+            if (fmt[i] == '0') {
+                i += 1;
+                while (fmt[i] >= '0' and fmt[i] <= '9') {
+                    width = width * 10 + (fmt[i] - '0');
+                    i += 1;
+                }
+            }
+            
+            if (fmt[i] == 'd') {
+                const val = @cVaArg(&va, i32);
+                var buf: [32]u8 = undefined;
+                const s = std.fmt.bufPrint(&buf, "{d}", .{val}) catch "ERR";
+                // Pad with zeros if needed
+                if (width > s.len) {
+                    for (0..(width - s.len)) |_| {
+                        str.?[j] = '0';
+                        j += 1;
+                    }
+                }
+                for (s) |c| {
+                    str.?[j] = c;
+                    j += 1;
+                }
+                i += 1;
+            } else if (fmt[i] == 's') {
+                const s_ptr = @cVaArg(&va, [*:0]const u8);
+                const s = std.mem.span(s_ptr);
+                for (s) |c| {
+                    str.?[j] = c;
+                    j += 1;
+                }
+                i += 1;
+            } else if (fmt[i] == 'f') { // Some floats used in house names
+                const val = @cVaArg(&va, f64);
+                var buf: [64]u8 = undefined;
+                const s = std.fmt.bufPrint(&buf, "{d:.2}", .{val}) catch "ERR";
+                 for (s) |c| {
+                    str.?[j] = c;
+                    j += 1;
+                }
+                i += 1;
+            } else {
+                // Unknown/unsupported format, just copy literally
+                str.?[j] = '%';
+                j += 1;
+            }
+        } else {
+            str.?[j] = fmt[i];
+            i += 1;
+            j += 1;
         }
-        str.?[i] = 0;
     }
-    return 0;
-}
-
-export fn fopen(_: ?[*:0]const u8, _: ?[*:0]const u8) callconv(.c) ?*anyopaque {
-    return null;
-}
-
-export fn fclose(_: ?*anyopaque) callconv(.c) c_int {
-    return 0;
-}
-
-export fn fread(_: ?*anyopaque, _: usize, _: usize, _: ?*anyopaque) callconv(.c) usize {
-    return 0;
+    str.?[j] = 0;
+    return @as(c_int, @intCast(j));
 }
 
 export fn fwrite(_: ?*anyopaque, _: usize, nmemb: usize, _: ?*anyopaque) callconv(.c) usize {
     return nmemb;
 }
 
-export fn fseek(_: ?*anyopaque, _: c_long, _: c_int) callconv(.c) c_int {
-    return 0;
-}
-
-export fn ftell(_: ?*anyopaque) callconv(.c) c_long {
-    return 0;
-}
-
 export fn fflush(_: ?*anyopaque) callconv(.c) c_int {
     return 0;
 }
 
-export fn fgets(_: ?[*:0]u8, _: c_int, _: ?*anyopaque) callconv(.c) ?[*:0]u8 {
+export fn fgets(str: ?[*:0]u8, size: c_int, stream: ?*anyopaque) callconv(.c) ?[*:0]u8 {
+    if (stream == null or str == null) return null;
+    const handle = @as(*OpenFileHandle, @ptrCast(@alignCast(stream)));
+    if (!handle.in_use) return null;
+
+    const file = &vfs_files[handle.file_idx];
+    var i: usize = 0;
+    while (i < @as(usize, @intCast(size - 1)) and handle.cursor < file.data.len) {
+        const ch = file.data[handle.cursor];
+        str.?[i] = ch;
+        handle.cursor += 1;
+        i += 1;
+        if (ch == '\n') break;
+    }
+    if (i == 0) return null;
+    str.?[i] = 0;
+    return str;
+}
+
+export fn fseeko(stream: ?*anyopaque, offset: i64, origin: c_int) callconv(.c) c_int {
+    return fseek(stream, @as(c_long, @intCast(offset)), origin);
+}
+
+export fn ftello(stream: ?*anyopaque) callconv(.c) i64 {
+    return @as(i64, @intCast(ftell(stream)));
+}
+
+// --- Virtual File System ---
+
+const MAX_FILES = 32;
+const MAX_OPEN_FILES = 32;
+
+const VirtualFile = struct {
+    name: []u8,
+    data: []u8,
+    in_use: bool,
+};
+
+const OpenFileHandle = struct {
+    file_idx: usize,
+    cursor: usize,
+    in_use: bool,
+};
+
+var vfs_files: [MAX_FILES]VirtualFile = undefined;
+var vfs_open_handles: [MAX_OPEN_FILES]OpenFileHandle = undefined;
+var vfs_initialized = false;
+
+fn vfs_init() void {
+    if (vfs_initialized) return;
+    for (0..MAX_FILES) |i| {
+        vfs_files[i].in_use = false;
+    }
+    for (0..MAX_OPEN_FILES) |i| {
+        vfs_open_handles[i].in_use = false;
+    }
+    vfs_initialized = true;
+}
+
+export fn vfs_add_file(name_ptr: [*]const u8, name_len: usize, data_ptr: [*]const u8, data_len: usize) callconv(.c) void {
+    vfs_init();
+    // Copy name and data to owned memory?
+    // Actually, let's assume `data_ptr` is the pointer to the permanently allocated buffer data for the file.
+    // But name needs to be copied or stored.
+    // Simplest: Find free slot.
+    var slot_idx: ?usize = null;
+    for (0..MAX_FILES) |i| {
+        if (!vfs_files[i].in_use) {
+            slot_idx = i;
+            break;
+        }
+    }
+    if (slot_idx) |idx| {
+        const name_slice = allocator.dupe(u8, name_ptr[0..name_len]) catch return; // Leaks intentionally (global FS)
+        const data_slice = allocator.dupe(u8, data_ptr[0..data_len]) catch return; // Copy data to own it
+        vfs_files[idx] = VirtualFile{
+            .name = name_slice,
+            .data = data_slice,
+            .in_use = true,
+        };
+    }
+}
+
+// Helper to find file by name
+fn vfs_find_file(name: []const u8) ?usize {
+    vfs_init();
+    // Helper: simplistic name matching (ignore directory prefix if strict match fails?)
+    // swisseph often passes full paths. we should match if the end of path matches our filename?
+    // Or just exact match?
+    // Let's do loose match: checks if `name` ends with `file.name` or `file.name` ends with `name`?
+    // Safer: exact match. The user should mount files with correct paths.
+    // Actually swisseph calls `swe_set_ephe_path`. If we provide `.`, it looks for `./sepl_18.se1`.
+    for (0..MAX_FILES) |i| {
+        if (vfs_files[i].in_use) {
+            // Check for exact match or suffix match (to handle path differences)
+            const f_name = vfs_files[i].name;
+            if (std.mem.eql(u8, f_name, name)) return i;
+            // Also try matching basename if full path provided
+            if (std.mem.endsWith(u8, name, f_name) and (name.len > f_name.len and name[name.len - f_name.len - 1] == '/')) return i;
+             // Opposite: if vfs has full path and we ask for basename? Unlikely.
+        }
+    }
     return null;
 }
 
-export fn fseeko(_: ?*anyopaque, _: i64, _: c_int) callconv(.c) c_int {
+export fn fopen(filename: ?[*:0]const u8, mode: ?[*:0]const u8) callconv(.c) ?*anyopaque {
+    _ = mode;
+    if (filename == null) return null;
+    const name = std.mem.span(filename.?);
+    
+    // Check VFS
+    if (vfs_find_file(name)) |file_idx| {
+         // Find open handle slot
+         for (0..MAX_OPEN_FILES) |i| {
+             if (!vfs_open_handles[i].in_use) {
+                 vfs_open_handles[i] = OpenFileHandle{
+                     .file_idx = file_idx,
+                     .cursor = 0,
+                     .in_use = true,
+                 };
+                 // Return pointer to the handle index (offset by some magic number to distinguish vs actual pointers?)
+                 // Actually, returning address of structs in `vfs_open_handles` is safer.
+                 return @ptrCast(&vfs_open_handles[i]);
+             }
+         }
+    }
+    return null;
+}
+
+export fn fclose(stream: ?*anyopaque) callconv(.c) c_int {
+    if (stream == null) return 0;
+    const handle = @as(*OpenFileHandle, @ptrCast(@alignCast(stream)));
+    handle.in_use = false;
     return 0;
 }
 
-export fn ftello(_: ?*anyopaque) callconv(.c) i64 {
+export fn fread(ptr: ?*anyopaque, size: usize, nmemb: usize, stream: ?*anyopaque) callconv(.c) usize {
+    if (stream == null or ptr == null) return 0;
+    const handle = @as(*OpenFileHandle, @ptrCast(@alignCast(stream)));
+    if (!handle.in_use) return 0;
+    
+    const file = &vfs_files[handle.file_idx];
+    const total_bytes = size * nmemb;
+    const available = file.data.len - handle.cursor;
+    const to_read = @min(total_bytes, available);
+    
+    const dest = @as([*]u8, @ptrCast(ptr))[0..to_read];
+    @memcpy(dest, file.data[handle.cursor..handle.cursor + to_read]);
+    
+    handle.cursor += to_read;
+    return to_read / size; // Return number of elements read
+}
+
+export fn fseek(stream: ?*anyopaque, offset: c_long, origin: c_int) callconv(.c) c_int {
+    if (stream == null) return -1;
+    const handle = @as(*OpenFileHandle, @ptrCast(@alignCast(stream)));
+    if (!handle.in_use) return -1;
+    
+    const file_len = @as(c_long, @intCast(vfs_files[handle.file_idx].data.len));
+    const current = @as(c_long, @intCast(handle.cursor));
+    
+    var new_pos: c_long = 0;
+    switch (origin) {
+        0 => new_pos = offset, // SEEK_SET
+        1 => new_pos = current + offset, // SEEK_CUR
+        2 => new_pos = file_len + offset, // SEEK_END
+        else => return -1,
+    }
+    
+    if (new_pos < 0) new_pos = 0;
+    if (new_pos > file_len) new_pos = file_len; // Or allow seeking past end? C allows it. But we just clamp for SAFETY.
+    
+    handle.cursor = @as(usize, @intCast(new_pos));
     return 0;
 }
 
-export fn rewind(_: ?*anyopaque) callconv(.c) void {}
+export fn ftell(stream: ?*anyopaque) callconv(.c) c_long {
+    if (stream == null) return -1;
+    const handle = @as(*OpenFileHandle, @ptrCast(@alignCast(stream)));
+    return @as(c_long, @intCast(handle.cursor));
+}
+
+export fn rewind(stream: ?*anyopaque) callconv(.c) void {
+    if (stream == null) return;
+    const handle = @as(*OpenFileHandle, @ptrCast(@alignCast(stream)));
+    handle.cursor = 0;
+}
 
 // --- Additional Strings/Stdlib ---
 export fn calloc(nmemb: usize, size: usize) callconv(.c) ?*anyopaque {

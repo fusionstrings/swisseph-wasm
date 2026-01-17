@@ -7,6 +7,12 @@ interface SwissEphExports extends WebAssembly.Exports {
   memory: WebAssembly.Memory;
 
   // Core
+  vfs_add_file(
+    name_ptr: number,
+    name_len: number,
+    data_ptr: number,
+    data_len: number,
+  ): void;
   sin(x: number): number;
   cos(x: number): number;
   tan(x: number): number;
@@ -1425,6 +1431,25 @@ export class SwissEph {
 
   public swe_set_sid_mode(sid_mode: number, t0: number, ayan_t0: number): void {
     this.exports.swe_set_sid_mode(sid_mode, t0, ayan_t0);
+  }
+
+  // --- VFS Helpers ---
+  public injectEphemerisFile(filename: string, data: Uint8Array): void {
+    const nameData = new TextEncoder().encode(filename);
+    const namePtr = this.alloc(nameData.length);
+    this.memory.set(nameData, namePtr);
+
+    const filePtr = this.alloc(data.length);
+    this.memory.set(data, filePtr);
+
+    this.exports.vfs_add_file(namePtr, nameData.length, filePtr, data.length);
+
+    // Note: We deliberately do NOT free the pointers here.
+    // The VFS in Zig takes ownership (allocator.dupe) OR we might want to manage lifetime differently.
+    // In my Zig VFS implementation: `allocator.dupe` was used. So Zig makes a COPY.
+    // Therefore, we SHOULD free the JS-side temporary buffers here.
+    this.free(namePtr);
+    this.free(filePtr);
   }
 
   public swe_close(): void {
