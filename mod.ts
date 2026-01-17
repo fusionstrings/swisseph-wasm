@@ -27,8 +27,12 @@ export const swe_get_planet_name = inst.swe_get_planet_name.bind(inst);
 export const swe_rise_trans = inst.swe_rise_trans.bind(inst);
 export const swe_sol_eclipse_where = inst.swe_sol_eclipse_where.bind(inst);
 export const swe_sol_eclipse_how = inst.swe_sol_eclipse_how.bind(inst);
-export const swe_sol_eclipse_when_loc = inst.swe_sol_eclipse_when_loc.bind(inst);
-export const swe_sol_eclipse_when_glob = inst.swe_sol_eclipse_when_glob.bind(inst);
+export const swe_sol_eclipse_when_loc = inst.swe_sol_eclipse_when_loc.bind(
+  inst,
+);
+export const swe_sol_eclipse_when_glob = inst.swe_sol_eclipse_when_glob.bind(
+  inst,
+);
 export const swe_lun_eclipse_when = inst.swe_lun_eclipse_when.bind(inst);
 export const swe_lun_eclipse_how = inst.swe_lun_eclipse_how.bind(inst);
 export const swe_get_ayanamsa_ut = inst.swe_get_ayanamsa_ut.bind(inst);
@@ -79,15 +83,20 @@ export const swe_cotrans_sp = inst.swe_cotrans_sp.bind(inst);
 export const swe_split_deg = inst.swe_split_deg.bind(inst);
 export const swe_d2l = inst.swe_d2l.bind(inst);
 export const swe_pheno = inst.swe_pheno.bind(inst);
-export const swe_get_orbital_elements = inst.swe_get_orbital_elements.bind(inst);
-export const swe_orbit_max_min_true_distance = inst.swe_orbit_max_min_true_distance.bind(inst);
+export const swe_get_orbital_elements = inst.swe_get_orbital_elements.bind(
+  inst,
+);
+export const swe_orbit_max_min_true_distance = inst
+  .swe_orbit_max_min_true_distance.bind(inst);
 export const swe_gauquelin_sector = inst.swe_gauquelin_sector.bind(inst);
 export const swe_houses_armc = inst.swe_houses_armc.bind(inst);
 export const swe_lmt_to_lat = inst.swe_lmt_to_lat.bind(inst);
 export const swe_lat_to_lmt = inst.swe_lat_to_lmt.bind(inst);
 export const swe_lun_occult_where = inst.swe_lun_occult_where.bind(inst);
 export const swe_lun_occult_when_loc = inst.swe_lun_occult_when_loc.bind(inst);
-export const swe_lun_occult_when_glob = inst.swe_lun_occult_when_glob.bind(inst);
+export const swe_lun_occult_when_glob = inst.swe_lun_occult_when_glob.bind(
+  inst,
+);
 export const swe_get_tid_acc = inst.swe_get_tid_acc.bind(inst);
 export const swe_difdeg2n = inst.swe_difdeg2n.bind(inst);
 export const swe_difdegn = inst.swe_difdegn.bind(inst);
@@ -104,4 +113,18 @@ export const swe_houses_ex2 = inst.swe_houses_ex2.bind(inst);
 export const swe_houses_armc_ex2 = inst.swe_houses_armc_ex2.bind(inst);
 export const swe_calc_pctr = inst.swe_calc_pctr.bind(inst);
 export const swe_csnorm = inst.swe_csnorm.bind(inst);
-export const swe_lun_eclipse_when_loc = inst.swe_lun_eclipse_when_loc.bind(inst);
+export const swe_lun_eclipse_when_loc = inst.swe_lun_eclipse_when_loc.bind(
+  inst,
+);
+// Math exports (verification)
+export const sin = inst.sin.bind(inst);
+export const cos = inst.cos.bind(inst);
+export const tan = inst.tan.bind(inst);
+export const asin = inst.asin.bind(inst);
+export const acos = inst.acos.bind(inst);
+export const atan = inst.atan.bind(inst);
+export const atan2 = inst.atan2.bind(inst);
+export const sqrt = inst.sqrt.bind(inst);
+export const exp = inst.exp.bind(inst);
+export const log = inst.log.bind(inst);
+export const pow = inst.pow.bind(inst);

@@ -276,11 +276,12 @@ export fn sin(x: f64) callconv(.c) f64 {
     var result = a;
     var term = a;
     var n: f64 = 1.0;
-    var i: usize = 0;
-    while (i < 10) : (i += 1) {
+    // Iterate until term is negligible
+    while (term > 1e-16 or term < -1e-16) {
         term *= -x2 / ((2.0 * n) * (2.0 * n + 1.0));
         result += term;
         n += 1.0;
+        if (n > 100.0) break; // Safety break
     }
     return result;
 }
@@ -292,11 +293,11 @@ export fn cos(x: f64) callconv(.c) f64 {
     var result: f64 = 1.0;
     var term: f64 = 1.0;
     var n: f64 = 1.0;
-    var i: usize = 0;
-    while (i < 10) : (i += 1) {
+    while (term > 1e-16 or term < -1e-16) {
         term *= -x2 / ((2.0 * n - 1.0) * (2.0 * n));
         result += term;
         n += 1.0;
+        if (n > 100.0) break;
     }
     return result;
 }
@@ -311,16 +312,19 @@ export fn tan(x: f64) callconv(.c) f64 {
 export fn asin(x: f64) callconv(.c) f64 {
     if (x >= 1.0) return PI / 2.0;
     if (x <= -1.0) return -PI / 2.0;
-    // Taylor series approximation
+    // For x > 0.7, use identity asin(x) = PI/2 - 2*asin(sqrt((1-x)/2)) to avoid slow convergence
+    // But self-recursion?
+    // Let's just use massive iterations for now.
     var result = x;
     var term = x;
     const x2 = x * x;
     var n: f64 = 1.0;
-    var i: usize = 0;
-    while (i < 15) : (i += 1) {
+    // Convergence loop
+    while (term > 1e-16 or term < -1e-16) {
         term *= x2 * (2.0 * n - 1.0) * (2.0 * n - 1.0) / ((2.0 * n) * (2.0 * n + 1.0));
         result += term;
         n += 1.0;
+        if (n > 5000.0) break; 
     }
     return result;
 }
@@ -330,19 +334,27 @@ export fn acos(x: f64) callconv(.c) f64 {
 }
 
 export fn atan(x: f64) callconv(.c) f64 {
-    // Range reduction: for |x| > 1, use atan(x) = pi/2 - atan(1/x)
+    // Range reduction
+    if (x < 0) return -atan(-x);
+    if (x == 0) return 0;
     if (x > 1.0) return PI / 2.0 - atan(1.0 / x);
-    if (x < -1.0) return -PI / 2.0 - atan(1.0 / x);
-    // Taylor series for |x| <= 1
+    // Now 0 <= x <= 1
+    // If x is close to 1, series is slow. Use atan(x) = PI/4 + atan((x-1)/(1+x))
+    // 0.414... is tan(pi/8). If x > tan(pi/8), transform reduces argument magnitude.
+    if (x > 0.4142135623730950) {
+        return PI / 4.0 + atan((x - 1.0) / (1.0 + x));
+    }
+    
+    // Taylor series for |x| <= 0.414 converges nicely
     var result = x;
     var term = x;
     const x2 = x * x;
     var n: f64 = 1.0;
-    var i: usize = 0;
-    while (i < 20) : (i += 1) {
+    while (term > 1e-16 or term < -1e-16) {
         n += 1.0;
         term *= -x2;
         result += term / (2.0 * n - 1.0);
+        if (n > 2000.0) break;
     }
     return result;
 }
@@ -360,9 +372,14 @@ export fn sqrt(x: f64) callconv(.c) f64 {
     if (x <= 0) return 0;
     // Newton-Raphson
     var guess = x / 2.0;
+    var prev: f64 = 0.0;
+    // Iterate until stable
     var i: usize = 0;
-    while (i < 20) : (i += 1) {
+    while (i < 100) : (i += 1) {
+        prev = guess;
         guess = (guess + x / guess) / 2.0;
+        const diff = guess - prev;
+        if (diff < 1e-16 and diff > -1e-16) break;
     }
     return guess;
 }
@@ -396,31 +413,48 @@ export fn exp(x: f64) callconv(.c) f64 {
     var result: f64 = 1.0;
     var term: f64 = 1.0;
     var n: f64 = 1.0;
-    var i: usize = 0;
-    while (i < 30) : (i += 1) {
+    while (term > 1e-16 or term < -1e-16) {
         term *= x / n;
         result += term;
         n += 1.0;
+        if (n > 2000.0) break; // Handle large x
     }
     return result;
 }
 
 export fn log(x: f64) callconv(.c) f64 {
     if (x <= 0) return -1e308; // -infinity approximation
-    // Reduce to log((1+y)/(1-y)) where y = (x-1)/(x+1)
+    
+    // Range reduction: log(M * 2^k) = log(M) + k * ln2
+    // Reduce x to [0.5, 1.0] or similar for fast convergence.
+    // Simple reduction: loop divide by 2
+    var val = x;
+    var k: f64 = 0.0;
+    const LN2 = 0.6931471805599453;
+    
+    while (val > 1.5) {
+        val *= 0.5;
+        k += 1.0;
+    }
+    while (val < 0.5) {
+        val *= 2.0;
+        k -= 1.0;
+    }
+
+    // Reduce to log((1+y)/(1-y)) where y = (val-1)/(val+1)
     // Then use series: 2*(y + y^3/3 + y^5/5 + ...)
-    const y = (x - 1.0) / (x + 1.0);
+    const y = (val - 1.0) / (val + 1.0);
     const y2 = y * y;
     var result = y;
     var term = y;
     var n: f64 = 3.0;
-    var i: usize = 0;
-    while (i < 50) : (i += 1) {
+    while (term > 1e-16 or term < -1e-16) {
         term *= y2;
         result += term / n;
         n += 2.0;
+        if (n > 5000.0) break;
     }
-    return 2.0 * result;
+    return 2.0 * result + k * LN2;
 }
 
 export fn log10(x: f64) callconv(.c) f64 {

@@ -7,6 +7,18 @@ interface SwissEphExports extends WebAssembly.Exports {
   memory: WebAssembly.Memory;
 
   // Core
+  sin(x: number): number;
+  cos(x: number): number;
+  tan(x: number): number;
+  asin(x: number): number;
+  acos(x: number): number;
+  atan(x: number): number;
+  atan2(y: number, x: number): number;
+  sqrt(x: number): number;
+  exp(x: number): number;
+  log(x: number): number;
+  pow(base: number, exp: number): number;
+
   swe_calc_ut(
     tjd: number,
     ipl: number,
@@ -962,6 +974,41 @@ export class SwissEph {
       polasc: ascmc[7],
       nascmc: ascmc[8],
     };
+  }
+
+  // Math methods (exposed for verification)
+  public sin(x: number): number {
+    return this.exports.sin(x);
+  }
+  public cos(x: number): number {
+    return this.exports.cos(x);
+  }
+  public tan(x: number): number {
+    return this.exports.tan(x);
+  }
+  public asin(x: number): number {
+    return this.exports.asin(x);
+  }
+  public acos(x: number): number {
+    return this.exports.acos(x);
+  }
+  public atan(x: number): number {
+    return this.exports.atan(x);
+  }
+  public atan2(y: number, x: number): number {
+    return this.exports.atan2(y, x);
+  }
+  public sqrt(x: number): number {
+    return this.exports.sqrt(x);
+  }
+  public exp(x: number): number {
+    return this.exports.exp(x);
+  }
+  public log(x: number): number {
+    return this.exports.log(x);
+  }
+  public pow(x: number, y: number): number {
+    return this.exports.pow(x, y);
   }
 
   public swe_house_pos(
